@@ -7,15 +7,22 @@ Description: Simple ini-file like config parser
 import os
 import re
 
+
 class Config(dict):
     """Config class to handle ini files"""
     file_found = False
 
     def __init__(self):
-        super(Config, self).__init__()
-        return None
+        pass
 
     def read(self, file_name):
+        """Read a config file and parse it.
+        Returns true if sucessful, false otherwise
+
+        Keyword arguments:
+        file_name -- the file to openi and parse
+
+        """
         if os.path.isfile(file_name):
             self.file_found = True
         else:
@@ -44,3 +51,23 @@ class Config(dict):
 
     def __bool__(self):
         return self.file_found
+
+
+def get_config(user_file, global_file):
+    """Return a valid Config class if the files are valid.
+    Returns None if no valid configs were found
+
+    Keyword arguments:
+    user_file -- path to the user's config file
+    global_file -- path to the global configuration file
+
+    """
+    c = Config()
+
+    if c.read(user_file):
+        return c
+
+    if c.read(global_file):
+        return c
+
+    return None
