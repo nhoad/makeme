@@ -62,11 +62,11 @@ logging.basicConfig(filename=log_file, \
 try:
     server = EmailServer(username, password)
     server.login_smtp()
+    #server.send_intro_email()
     calculate_refresh(refresh_time)
     while True:
         new_refresh = calculate_refresh(refresh_time, True)
-        logging.info("Checking instructions in {0} seconds, calculated \
-            from {1}".format(new_refresh, refresh_time))
+        logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
         time.sleep(new_refresh)
         logging.info("Checking for new instructions")
         server.check_messages(patterns)
