@@ -1,3 +1,51 @@
-More to add later! This project is very much in the early stages. If you happen to try it, at all, please let me know your thoughts!
+pymote
 
-Contact me on nathan(at)getoffmalawn.com
+Dependencies:
+-------------
+Python 3
+
+General:
+--------
+pymote is a means of remotely controlling your computer via email. It can be
+configured to do anything, and respond to any number of commands. The sky is
+the limit, it's all about what the user can do.
+
+Installation:
+-------------
+
+Simply run the program to test it. If you want to add it to your $PATH,
+I suggest using ~/bin with a symbolic link.
+
+   Configuration:
+   --------------
+
+   Configuration is very simple in pymote. The global config path is
+   /usr/share/pymote/pymoterc and the user config is $HOME/.pymoterc
+   Layout is like ini files.
+
+   [settings]
+   username = the username you log into your email address with
+   password = password associated with username
+   refresh_time = how often to check for emails in minutes. There are a few configuration options here.
+      N  -- where N is the number of minutes to wait before checking
+      hN -- where N is the number of hours to wait before checking
+      sN -- where N is the number of seconds to wait before checking
+      :N -- where N is the time past the hour to check, e.g. :20 would check at 9:20, 10:20 etc.
+      /N -- where N is the number of minutes to wait before checking, normalised. So /10 would be 9:10, 9:20, 9:30 etc.
+   log_file = where to log events. Can be full path or filename only to store in current working directory.
+      default: pymote.log
+   log_format = log format. Should be left as default, but if you want to change it consult the logging documentation.
+      default: [%(asctime)s] %(levelname)s: %(message)s
+   date_format = date format for logging. Should be default, but consult logging documentation to change.
+      default: %Y-%m-%d %H:%M:%S
+   should_fork = True to fork to background, False to stay in foreground.
+
+   [scripts]
+   This section deals with what script to run when particular emails arrive
+   (regex expression) = (script name in scripts directory)
+   For example:
+   start.torrent = torrent.py
+
+   This will search a message for start.torrent, and run torrent.py if it does
+   find it. Scripts can be in whatever language you want, as long as they're
+   executable it's all good.
