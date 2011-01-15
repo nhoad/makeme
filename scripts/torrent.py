@@ -6,48 +6,72 @@ import re
 import transmissionrpc
 from threading import Thread
 
-search_pattern = r'((https?://|www.)?[.\S]+)'
-server_pattern = r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:(\d{1,5}))?'
+add_pattern = r'ADD (\S+)'
+add_stop_pattern = r'ADD-STOP (\S+)'
+server_pattern = r'SERVER (\S+)'
 
 port = 9091
-server = '192.168.1.75'
+server = 'localhost'
 should_stop = False
 
 result = re.search(server_pattern, sys.argv[4])
-
-if re.search(r'HALT', sys.argv[4]):
-    should_stop = True
 
 if result is not None:
     if len(result.groups()) == 1:
         server = result.groups()[0]
     else:
         server = result.groups()[0]
-        port = result.groups()[2]
+
+
+def add_torrents(client):
+    """Add all torrents to the server"""
+    torrents = re.findall(add_pattern, sys.argv[4])
+
+    for t in torrents:
+        client.add_url(t)
+
+    torrents = re.findall(add_stop_pattern, sys.argv[4])
+
+    for t in torrents:
+        id = client.add_url(t)
+
+        client.stop(id)
+
+def show_progress(client):
+    """Display progress of all current torrents"""
+    torrents = client.list()
+
+    for i in torrents.keys():
+        name = torrents[i].name
+        percent = torrents[i].progress
+        print "%d - %s - %.2f%%" % (i, name, percent)
+
+def magic_torrents(client, command):
+    ids = []
+    text = sys.argv[4]
+
+    b = text.find(command.upper())
+    if b == -1:
+        return
+
+    text = text[b:]
+    text = text
+    e = text.find('\n')
+    ids = text[:e].split(' ')
+
+    if len(ids) >= 2 and ids[1].upper() == "ALL":
+        ids = client.list()
+    else:
+        ids = ids[1:]
+
+    for i in ids:
+        getattr(client, command)(i)
+
+def start_torrents(client):
+    """start all or some of the torrents using START command"""
+    magic_torrents(client, 'start')
+
+def stop_torrents(client):
+    magic_torrents(client, 'stop')
 
 tc = transmissionrpc.Client(server, port=port)
-
-class DownloadThread(Thread):
-    """Thread to download a file. """
-    def __init__(self, link):
-        Thread.__init__(self)
-
-        self.link = link
-
-    def run(self):
-        try:
-            id = tc.add_url(self.link).keys()[0]
-
-            if should_stop:
-                tc.stop(id)
-
-            print "SUCCESS: %s" % self.link
-
-        except IOError, e:
-            if e.errno == errno.ENOENT:
-                print "ERROR: Could not save %s" % self.link
-
-links = re.findall(search_pattern, sys.argv[4])
-
-for link in links:
-    DownloadThread(link[0]).start()
