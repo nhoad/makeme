@@ -36,15 +36,14 @@ class MessageProcessThread(Thread):
                 command.append(self.message.subject)
                 command.append(self.message.body)
 
-                pipe = Popen(command, shell=True, bufsize=-1, \
-                    stdout=PIPE, stderr=PIPE)
+                pipe = Popen(command, stdout=PIPE, stderr=PIPE)
 
                 pipe.wait()
                 logging.debug("Popen for {0} complete".format(command))
-                # stderr is the "script"
-                self.script = str(pipe.stderr.read(), encoding='utf8')
-                # send stdot
-                self.reply_message = str(pipe.stdout.read(), encoding='utf8')
+                # stdout is the "script"
+                self.script = str(pipe.stdout.read(), encoding='utf8')
+                # stderr is the reply text in the event an exception occurs.
+                self.reply_message = str(pipe.stderr.read(), encoding='utf8')
 
                 if not self.process_script():
                     self.process_message()

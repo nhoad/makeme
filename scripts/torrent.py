@@ -10,6 +10,13 @@ add_stop_pattern = r'ADD-STOP (\S+)'
 server_pattern = r'SERVER (\S+)'
 port_pattern = r'PORT (\S+)'
 turtle_pattern = r'TURTLE-ON (\S+)'
+start_pattern = r'START (\S+)'
+stop_pattern = r'STOP (\S+)'
+
+def stderr_print(output):
+    """Print output to stderr"""
+    sys.stderr.write(output + '\n')
+
 
 def add_torrents(client):
     """Add all torrents to the server"""
@@ -22,7 +29,7 @@ def add_torrents(client):
 
     for t in torrents:
         id = client.add_url(t)
-        print "%s added" % t
+        stderr_print("%s added" % t)
 
         client.stop(id)
 
@@ -37,7 +44,7 @@ def show_progress(client):
     for i in torrents.keys():
         name = torrents[i].name
         percent = torrents[i].progress
-        print "%d - %s - %.2f%%" % (i, name, percent)
+        stderr_print("%d - %s - %.2f%%" % (i, name, percent))
 
 
 def magic_torrents(client, command):
@@ -57,12 +64,12 @@ def magic_torrents(client, command):
     if len(ids) >= 2 and ids[1].upper() == "ALL":
         ids = client.list()
     else:
-        ids = ids[1:]
+        ids = [ int(i) for i in ids[1:]]
 
     for i in ids:
         getattr(client, command)(i)
 
-    print "All torrents have been %s'ed" % command
+    stderr_print("All torrents have been %s'ed" % command)
 
 
 def turtle_on(client):
@@ -72,15 +79,18 @@ def turtle_on(client):
         limit = int(result.groups()[0])
 
         client.set_session(alt_speed_enabled=True)
-        print "TURTLE MODE TURNED ON"
+        stderr_print("TURTLE MODE TURNED ON")
         client.set_session(alt_speed_down=limit)
-        print "SPEED LIMITED TO %d KiB/s" % limit
+        stderr_print("SPEED LIMITED TO %d KiB/s" % limit)
+    elif sys.argv[4].find("TURTLE-ON") != -1:
+        client.set_session(alt_speed_enabled=True)
+        stderr_print("TURTLE MODE TURNED ON")
 
 
 def turtle_off(client):
     if sys.argv[4].find("TURTLE-OFF") != -1:
         client.set_session(alt_speed_enabled=False)
-        print "TURTLE MODE TURNED OFF"
+        stderr_print("TURTLE MODE TURNED OFF")
 
 
 def start_torrents(client):
@@ -106,6 +116,9 @@ if result:
     port = int(result.groups()[0])
 
 tc = transmissionrpc.Client(server, port=port)
+
+if help():
+    sys.exit(0)
 
 add_torrents(tc)
 show_progress(tc)
