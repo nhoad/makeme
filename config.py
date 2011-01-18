@@ -24,6 +24,7 @@ class Config(dict):
 
         """
         if os.path.isfile(file_name):
+            self.file_name = file_name
             self.file_found = True
         else:
             return False
@@ -51,6 +52,17 @@ class Config(dict):
 
     def __bool__(self):
         return self.file_found
+
+    def save(self):
+        """Save the config to file_name"""
+        output = open(self.file_name, 'w')
+
+        for k in self.keys():
+            output.write("[{0}]\n".format(k))
+            for s in self[k]:
+                output.write("{0} = {1}\n".format(s, self[k][s]))
+
+        output.close()
 
 
 def get_config(user_file, global_file):

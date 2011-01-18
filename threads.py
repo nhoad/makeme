@@ -7,20 +7,23 @@ Description: Contains all Thread classes for processing emails.
 import logging
 import os
 
-from threading import Thread
+from threading import Thread, Lock
 from subprocess import Popen, PIPE
+
+from smtplib import SMTPServerDisconnected
 
 import emails
 
 
 class MessageProcessThread(Thread):
     """Thread for processing a message and replying accordingly."""
-    def __init__(self, message, patterns, sender):
+    def __init__(self, message, patterns, sender, lock):
         Thread.__init__(self)
 
         self.message = message
         self.patterns = patterns
         self.sender = sender
+        self.lock = lock
 
     def run(self):
         """React accordingly."""
@@ -45,8 +48,18 @@ class MessageProcessThread(Thread):
                 # stderr is the reply text in the event an exception occurs.
                 self.reply_message = str(pipe.stderr.read(), encoding='utf8')
 
-                if not self.process_script():
-                    self.process_message()
+                self.lock.acquire()
+
+                try:
+                    if not self.process_script():
+                        self.process_message()
+                except SMTPServerDisconnected as e:
+                    to = self.message.sender
+                    subject = "RE: {0}".format(self.message.subject)
+                    body = self.reply_message
+                    self.sender.add_email_to_queue(emails.Email(receiver=to, subject=subject, body=body))
+
+                self.lock.release()
 
                 return
 
@@ -72,13 +85,28 @@ class ProcessThreadsStarter(Thread):
         Thread.__init__(self)
         self.server = server
         self.patterns = patterns
+        self.name = "ProcessThreadStarter"
 
     def run(self):
         self.messages = self.server.receive_mail()
+        self.lock = Lock()
 
         if len(self.messages) == 0:
             logging.info("No instructions were received!")
         for message in self.messages:
-            MessageProcessThread(message, self.patterns, self.server).start()
+            MessageProcessThread(message, self.patterns, self.server, self.lock).start()
 
         self.server.logout_imap()
+
+        for f in threading.enumarate():
+            if f.name == self.name or f,name == 'MainThread':
+                continue
+
+            f.join()
+
+        if len(self.server.email_queue) > 0:
+            self.server.login_smtp()
+
+            for e in self.server.email_queue):
+                self.server.send_email(e)
+

@@ -13,6 +13,9 @@ turtle_pattern = r'TURTLE-ON (\S+)'
 start_pattern = r'START (\S+)'
 stop_pattern = r'STOP (\S+)'
 
+#make it case insensitive
+sys.argv[4] = sys.argv[4].upper()
+
 def stderr_print(output):
     """Print output to stderr"""
     sys.stderr.write(output + '\n')
@@ -102,6 +105,27 @@ def stop_torrents(client):
     magic_torrents(client, 'stop')
 
 
+def help():
+    """Display help for the user to figure out how to use this script"""
+    if sys.argv[4].find("HELP") != -1:
+        stderr_print("ADD link -- Add the link to transmission and start right away")
+        stderr_print("ADD-STOP link -- Add the link to transmission and stop")
+        stderr_print("SERVER ip-or-domain-name -- the ip or domain name of the server hosting transmission. Default localhost")
+        stderr_print("PORT port -- the port that Transmission is using on the server. Default 9091")
+        stderr_print("TURTLE-ON -- down-speed turn on turtle mode, and set download limit to down-speed. Down-speed is optional")
+        stderr_print("TURTLE-OFF -- turn turtle mode off")
+        stderr_print("START ids -- space delimited ids of torrents to start. Accepts ALL to start all torrents")
+        stderr_print("STOP ids -- space delimited ids of torrents to stop. Accepts ALL to stop all torrents")
+        stderr_print("PROGRESS -- output torrent id, name and progress in percent")
+        return True
+
+    return False
+
+
+if help():
+    sys.exit(0)
+
+
 port = 9091
 server = 'localhost'
 
@@ -116,9 +140,6 @@ if result:
     port = int(result.groups()[0])
 
 tc = transmissionrpc.Client(server, port=port)
-
-if help():
-    sys.exit(0)
 
 add_torrents(tc)
 show_progress(tc)
