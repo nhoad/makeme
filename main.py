@@ -2,7 +2,7 @@
 '''
 File: main.py
 Author: Nathan Hoad
-Description: pymote driver module.
+Description: makeme driver module.
 '''
 
 import logging
@@ -22,12 +22,14 @@ from functions import shutdown, get_time, calculate_refresh
 signal.signal(signal.SIGSEGV, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
-global_file = "/usr/share/pymote/pymoterc"
-user_file = os.path.join(os.environ['HOME'], ".pymoterc")
+global_file = "/usr/share/makeme/makemerc"
+user_file = os.path.join(os.environ['HOME'], ".makemerc")
 conf = config.get_config(user_file, global_file)
 
+contact_address = None
+
 if not conf:
-    print("No .pymoterc file could be found. Check the documentation for details.", file=sys.stderr)
+    print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
     sys.exit(1)
 
 try:
@@ -39,6 +41,9 @@ try:
     log_format = conf['settings']['log_format']
     date_format = conf['settings']['date_format']
     should_fork = eval(conf['settings']['should_fork'])
+    contact_address = conf['settings']['contact_address']
+    first_email_sent = eval(conf['settings']['first_email_sent'])
+
 except KeyError as e:
     print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
     sys.exit(4)
@@ -61,8 +66,13 @@ logging.basicConfig(filename=log_file, \
 
 try:
     server = EmailServer(username, password)
+    server.contact_address = contact_address
     server.login_smtp()
-    #server.send_intro_email()
+    if not first_email_sent:
+        server.send_intro_email()
+        conf['settings']['first_email_sent'] = str(True)
+        conf.save()
+
     calculate_refresh(refresh_time)
     while True:
         new_refresh = calculate_refresh(refresh_time, True)

@@ -7,6 +7,7 @@ Description: Contains all Thread classes for processing emails.
 import logging
 import os
 
+import threading
 from threading import Thread, Lock
 from subprocess import Popen, PIPE
 
@@ -98,15 +99,15 @@ class ProcessThreadsStarter(Thread):
 
         self.server.logout_imap()
 
-        for f in threading.enumarate():
-            if f.name == self.name or f,name == 'MainThread':
+        for f in threading.enumerate():
+            if f.name == self.name or f.name == 'MainThread':
                 continue
 
             f.join()
 
-        if len(self.server.email_queue) > 0:
+        if len(self.server.unsent_emails) > 0:
             self.server.login_smtp()
 
-            for e in self.server.email_queue):
+            for e in self.server.unsent_emails:
                 self.server.send_email(e)
 

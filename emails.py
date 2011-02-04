@@ -77,6 +77,8 @@ class EmailServer():
         self.username, self.password = username, password
         self.sender = None
         self.receiver = None
+        self.unsent_emails = []
+        self.contact_address = None
 
     def __del__(self):
         """Clean up the EmailServer. Logs things out and whatnot."""
@@ -146,11 +148,6 @@ class EmailServer():
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = email.subject
 
-        print("SEND_EMAIL")
-        print(email.sender)
-        print(to)
-        print(email.subject)
-        print(email.body)
         msg.attach(MIMEText(email.body))
 
         if email.filename:
@@ -167,12 +164,15 @@ class EmailServer():
     def send_intro_email(self):
         """docstring for send_intro_email"""
         message = """\
-        Welcome to pyMote! This piece of software was built on the idea of
+        Welcome to makeme! This piece of software was built on the idea of
         simple remote "administration". You can use this to communicate with
         your computer from anywhere in the world, simply by sending an email
         to an address you have specified. """
 
-        self.send_email(Email(self.username, "Welcome to pyMote!", message))
+        if self.contact_address is None:
+            logging.info("Inntroductory email can't be sent. No contact address specified.")
+
+        self.send_email(Email(self.contact_address, "Welcome to makeme!", message))
 
     def receive_mail(self):
         """Retrieve all unread messages and return them as a list of Emails"""
@@ -213,11 +213,6 @@ class EmailServer():
 
                         text = part.get_payload()
 
-                    print("RECEIVE_EMAIL")
-                    print(sender)
-                    print(receiver)
-                    print(subject)
-                    print(text)
                     emails.append(Email(sender=sender, receiver=receiver, subject=subject, body=text))
         else:
             logging.debug("There are NO new emails!")
@@ -228,3 +223,6 @@ class EmailServer():
         """Login via IMAP and create a ProcessThreadStarter for processing."""
         self.login_imap()
         ProcessThreadsStarter(self, patterns).start()
+
+    def add_email_to_queue(self,email):
+        self.unsent_emails.append(email)

@@ -1,0 +1,20 @@
+#example config file
+[settings]
+username = username@useraddress.com
+password = password
+refresh_time = s5
+log_file = makeme.log
+log_format = [%(asctime)s] %(levelname)s: %(message)s
+date_format = %Y-%m-%d %H:%M:%S
+should_fork = False
+# this address is for sending errors to
+contact_address = contact@email.com
+first_email_sent = False
+
+[scripts]
+start.download = download.py
+transmission = transmission.py
+deluge = deluge-remote.py
+send.file = sendfile.py
+test = test.py
+mpd = mpd.py

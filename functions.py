@@ -1,7 +1,7 @@
 '''
 File: functions.py
 Author: Nathan Hoad
-Description: Misc. functions used in pymote.
+Description: Misc. functions used in makeme.
 '''
 import logging
 import sys
@@ -9,13 +9,13 @@ import time
 
 
 def shutdown(exitcode=0):
-    """Shutdown pymote nicely.
+    """Shutdown makeme nicely.
 
     Keyword arguments:
     exitcode -- the exitcode to shutdown with. Defaults to 0.
 
     """
-    logging.info("Shutting down pymote.")
+    logging.info("Shutting down makeme.")
     sys.exit(exitcode)
 
 

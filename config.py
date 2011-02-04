@@ -7,9 +7,16 @@ Description: Simple ini-file like config parser
 import os
 import re
 
+def remove_comments(text):
+    """Remove comment tags from text and return it"""
+    b = text.find('#')
+    if b == -1:
+        return text
+    return text[:b].strip()
+
 
 class Config(dict):
-    """Config class to handle ini files"""
+    """Config class to handle ini-like files"""
     file_found = False
 
     def __init__(self):
@@ -39,6 +46,7 @@ class Config(dict):
 
         for line in conf.readlines():
             line = line.strip()
+            line = remove_comments(line)
             if line:
                 if section_pattern.search(line):
                     section = line[1:-1]
