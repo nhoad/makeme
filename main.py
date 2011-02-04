@@ -14,6 +14,8 @@ import time
 from smtplib import SMTPAuthenticationError
 
 import config
+import functions
+import threads
 
 from emails import EmailServer
 from exceptions import ShutdownException
@@ -27,6 +29,7 @@ user_file = os.path.join(os.environ['HOME'], ".makemerc")
 conf = config.get_config(user_file, global_file)
 
 contact_address = None
+monitor = None
 
 if not conf:
     print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
@@ -67,7 +70,10 @@ logging.basicConfig(filename=log_file, \
 try:
     server = EmailServer(username, password)
     server.contact_address = contact_address
+    server.patterns = patterns
     server.login_smtp()
+    monitor = functions.monitor(conf.file_name, server)
+
     if not first_email_sent:
         server.send_intro_email()
         conf['settings']['first_email_sent'] = str(True)
@@ -79,14 +85,22 @@ try:
         logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
         time.sleep(new_refresh)
         logging.info("Checking for new instructions")
-        server.check_messages(patterns)
+        server.check_messages()
 except KeyboardInterrupt:
+    if monitor:
+        monitor.stop()
     shutdown()
 except ShutdownException as e:
+    if monitor:
+        monitor.stop()
     shutdown(e.exitcode)
 except ValueError as e:
     logging.critical("refresh_time in your config file MUST be a number! Consult the documentation.")
+    if monitor:
+        monitor.stop()
     shutdown(1)
-except Exception as e:
-    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
-    shutdown(5)
+#except Exception as e:
+#    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
+#    if monitor:
+#        monitor.stop()
+#    shutdown(5)

@@ -7,6 +7,57 @@ import logging
 import sys
 import time
 
+from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
+
+import config
+
+def monitor(filename, server):
+    print("Beginning Monitoring for {0}".format(filename))
+    class PClose(ProcessEvent):
+        def __init__(self, server, filename):
+            self.server = server
+            self.filename = filename
+
+        def process_IN_CLOSE(self, event):
+            print("HELLO!")
+            conf = config.Config()
+            conf = {'settings' : {'username':'test', 'password': 'test', 'contact_address': 'test'},
+                    'scripts': {'f':'asdf.py'}}
+            lock = self.server.lock
+            username = conf['settings']['username']
+            password = conf['settings']['password']
+            patterns = conf['scripts']
+            contact_address = conf['settings']['contact_address']
+            lock.acquire()
+            self.server.reload_values(username, password, contact_address, patterns)
+            lock.release()
+            nothing = """
+            conf.read(self.filename)
+
+            try:
+                refresh_time = conf['settings']['refresh_time']
+                username = conf['settings']['username']
+                password = conf['settings']['password']
+                patterns = conf['scripts']
+                contact_address = conf['settings']['contact_address']
+
+                lock = self.server.lock
+
+                lock.acquire()
+                self.server.reload_values(username, password, contact_address, patterns)
+                lock.release()
+
+            except KeyError as e:
+                print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
+                sys.exit(4)"""
+
+    wm = WatchManager()
+    notifier = ThreadedNotifier(wm, PClose(server, filename))
+    wm.add_watch(filename, IN_CLOSE_WRITE|IN_CLOSE_NOWRITE, rec=True)
+
+    notifier.start()
+
+    return notifier
 
 def shutdown(exitcode=0):
     """Shutdown makeme nicely.

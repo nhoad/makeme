@@ -8,12 +8,12 @@ import logging
 import os
 
 import threading
-from threading import Thread, Lock
+from threading import Thread
 from subprocess import Popen, PIPE
-
 from smtplib import SMTPServerDisconnected
 
-import emails
+from emails import Email
+import config
 
 
 class MessageProcessThread(Thread):
@@ -58,7 +58,7 @@ class MessageProcessThread(Thread):
                     to = self.message.sender
                     subject = "RE: {0}".format(self.message.subject)
                     body = self.reply_message
-                    self.sender.add_email_to_queue(emails.Email(receiver=to, subject=subject, body=body))
+                    self.sender.add_email_to_queue(Email(receiver=to, subject=subject, body=body))
 
                 self.lock.release()
 
@@ -74,7 +74,7 @@ class MessageProcessThread(Thread):
         to = self.message.sender
         subject = "RE: {0}".format(self.message.subject)
         body = self.reply_message
-        self.sender.send_email(emails.Email(receiver=to, subject=subject, body=body))
+        self.sender.send_email(Email(receiver=to, subject=subject, body=body))
 
 
 class ProcessThreadsStarter(Thread):
@@ -90,7 +90,7 @@ class ProcessThreadsStarter(Thread):
 
     def run(self):
         self.messages = self.server.receive_mail()
-        self.lock = Lock()
+        self.lock = self.server.lock
 
         if len(self.messages) == 0:
             logging.info("No instructions were received!")

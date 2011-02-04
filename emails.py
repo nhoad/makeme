@@ -19,7 +19,9 @@ from email.parser import HeaderParser
 from email.utils import formatdate
 
 from exceptions import ShutdownException
-from threads import ProcessThreadsStarter
+import threads
+
+from threading import Lock
 
 
 class Email():
@@ -79,6 +81,7 @@ class EmailServer():
         self.receiver = None
         self.unsent_emails = []
         self.contact_address = None
+        self.lock = Lock()
 
     def __del__(self):
         """Clean up the EmailServer. Logs things out and whatnot."""
@@ -88,6 +91,18 @@ class EmailServer():
             logging.info("SMTP logged out")
         if self.receiver:
             self.logout_imap()
+
+    def reload_values(self, username, password, contact_address, patterns):
+        logging.info("Config file was changed, reloading...")
+        if self.password != password or self.username != username:
+            self.password = password
+            self.username = username
+
+            self.sender.quit()
+            self.login_smtp()
+
+        self.contact_address = contact_address
+        self.patterns = patterns
 
     def logout_imap(self):
         """Logout the IMAP account. Keeps things tidy."""
@@ -112,7 +127,9 @@ class EmailServer():
             self.sender.login(self.username, self.password)
             logging.info("SMTP logged in")
         except SMTPAuthenticationError as e:
-            logging.critical("Error logging into SMTP: {0}".format(e))
+            message = "Error logging into SMTP: {0}".format(e)
+            logging.critical(message)
+            print(message)
             raise ShutdownException(2)
 
     #TODO make it able to connect to more than Gmail
@@ -219,10 +236,10 @@ class EmailServer():
 
         return emails
 
-    def check_messages(self, patterns):
+    def check_messages(self):
         """Login via IMAP and create a ProcessThreadStarter for processing."""
         self.login_imap()
-        ProcessThreadsStarter(self, patterns).start()
+        threads.ProcessThreadsStarter(self, self.patterns).start()
 
     def add_email_to_queue(self,email):
         self.unsent_emails.append(email)
