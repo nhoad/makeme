@@ -20,6 +20,7 @@ import threads
 from emails import EmailServer
 from exceptions import ShutdownException
 from functions import shutdown, get_time, calculate_refresh
+import threading
 
 signal.signal(signal.SIGSEGV, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
@@ -86,6 +87,7 @@ try:
         time.sleep(new_refresh)
         logging.info("Checking for new instructions")
         server.check_messages()
+        print(threading.enumerate())
 except KeyboardInterrupt:
     if monitor:
         monitor.stop()

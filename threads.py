@@ -100,7 +100,7 @@ class ProcessThreadsStarter(Thread):
         self.server.logout_imap()
 
         for f in threading.enumerate():
-            if f.name == self.name or f.name == 'MainThread':
+            if f.name == self.name or f.name == 'MainThread' or f.name == 'MonitorThread':
                 continue
 
             f.join()

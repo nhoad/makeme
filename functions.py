@@ -44,6 +44,7 @@ def monitor(filename, server):
 
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))
+    notifier.name = 'MonitorThread'
     wm.add_watch(filename, IN_CLOSE_WRITE|IN_CLOSE_NOWRITE, rec=True)
 
     notifier.start()
