@@ -37,7 +37,6 @@ class Config(dict):
             return False
 
         if len(self) > 0:
-            print("clearing")
             self.clear()
 
         section_pattern = re.compile('^\[\S+\]$')
@@ -56,6 +55,7 @@ class Config(dict):
                     key = line[0].strip()
                     value = " ".join(line[1:]).strip()
                     self[section][key] = value
+
         return True
 
     def __bool__(self):

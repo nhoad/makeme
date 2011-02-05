@@ -21,17 +21,6 @@ def monitor(filename, server):
         def process_IN_CLOSE(self, event):
             print("HELLO!")
             conf = config.Config()
-            conf = {'settings' : {'username':'test', 'password': 'test', 'contact_address': 'test'},
-                    'scripts': {'f':'asdf.py'}}
-            lock = self.server.lock
-            username = conf['settings']['username']
-            password = conf['settings']['password']
-            patterns = conf['scripts']
-            contact_address = conf['settings']['contact_address']
-            lock.acquire()
-            self.server.reload_values(username, password, contact_address, patterns)
-            lock.release()
-            nothing = """
             conf.read(self.filename)
 
             try:
@@ -49,7 +38,9 @@ def monitor(filename, server):
 
             except KeyError as e:
                 print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
-                sys.exit(4)"""
+                print(dir(e))
+                raise e
+                sys.exit(4)
 
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))
