@@ -6,6 +6,7 @@ Description: Misc. functions used in makeme.
 import logging
 import sys
 import time
+import os
 
 from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
 
@@ -19,7 +20,9 @@ def monitor(filename, server):
             self.filename = filename
 
         def process_IN_CLOSE(self, event):
-            print("HELLO!")
+            if event.name != os.path.split(self.filename)[1]:
+                return
+
             conf = config.Config()
             conf.read(self.filename)
 
@@ -33,7 +36,7 @@ def monitor(filename, server):
                 lock = self.server.lock
 
                 lock.acquire()
-                self.server.reload_values(username, password, contact_address, patterns)
+                self.server.reload_values(username, password, contact_address, patterns, refresh_time)
                 lock.release()
 
             except KeyError as e:
@@ -45,7 +48,7 @@ def monitor(filename, server):
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))
     notifier.name = 'MonitorThread'
-    wm.add_watch(filename, IN_CLOSE_WRITE|IN_CLOSE_NOWRITE, rec=True)
+    wm.add_watch(os.path.split(filename)[0], IN_CLOSE_WRITE, rec=True)
 
     notifier.start()
 

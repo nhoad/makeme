@@ -9,7 +9,6 @@ import logging
 import os
 import signal
 import sys
-import time
 
 from smtplib import SMTPAuthenticationError
 
@@ -31,6 +30,7 @@ conf = config.get_config(user_file, global_file)
 
 contact_address = None
 monitor = None
+monitor_config = False
 
 if not conf:
     print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
@@ -47,6 +47,7 @@ try:
     should_fork = eval(conf['settings']['should_fork'])
     contact_address = conf['settings']['contact_address']
     first_email_sent = eval(conf['settings']['first_email_sent'])
+    monitor_config = eval(conf['settings']['monitor_config'])
 
 except KeyError as e:
     print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
@@ -73,21 +74,24 @@ try:
     server.contact_address = contact_address
     server.patterns = patterns
     server.login_smtp()
-    monitor = functions.monitor(conf.file_name, server)
 
     if not first_email_sent:
         server.send_intro_email()
         conf['settings']['first_email_sent'] = str(True)
         conf.save()
 
-    calculate_refresh(refresh_time)
-    while True:
-        new_refresh = calculate_refresh(refresh_time, True)
-        logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
-        time.sleep(new_refresh)
-        logging.info("Checking for new instructions")
-        server.check_messages()
-        print(threading.enumerate())
+    # monitor MUST be done after sending the first email, otherwise the program may trigger reloading
+    if monitor_config:
+        monitor = functions.monitor(conf.file_name, server)
+
+    server.run(refresh_time)
+    #while True:
+    #    refresh_time = self.refresh_time
+    #    new_refresh = calculate_refresh(refresh_time, True)
+    #    logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
+    #    time.sleep(new_refresh)
+    #    logging.info("Checking for new instructions")
+    #    server.check_messages()
 except KeyboardInterrupt:
     if monitor:
         monitor.stop()

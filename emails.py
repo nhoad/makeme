@@ -9,6 +9,7 @@ import email
 import smtplib
 import imaplib
 import re
+import time
 
 from smtplib import SMTPAuthenticationError
 from email import encoders
@@ -20,6 +21,7 @@ from email.utils import formatdate
 
 from exceptions import ShutdownException
 import threads
+import functions
 
 from threading import Lock
 
@@ -91,8 +93,9 @@ class EmailServer():
         if self.receiver:
             self.logout_imap()
 
-    def reload_values(self, username, password, contact_address, patterns):
+    def reload_values(self, username, password, contact_address, patterns, refresh_time):
         logging.info("Config file was changed, reloading...")
+        self.lock.acquire()
         if self.password != password or self.username != username:
             self.password = password
             self.username = username
@@ -102,6 +105,9 @@ class EmailServer():
 
         self.contact_address = contact_address
         self.patterns = patterns
+        self.refresh_time = refresh_time
+
+        self.lock.release()
 
     def logout_imap(self):
         """Logout the IMAP account. Keeps things tidy."""
@@ -242,3 +248,19 @@ class EmailServer():
 
     def add_email_to_queue(self,email):
         self.unsent_emails.append(email)
+
+    def run(self, refresh_time):
+        """docstring for run"""
+
+        self.refresh_time = functions.calculate_refresh(refresh_time)
+
+        while True:
+            self.lock.acquire()
+            refresh_time = self.refresh_time
+            self.lock.release()
+
+            new_refresh = functions.calculate_refresh(refresh_time, True)
+            logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
+            time.sleep(new_refresh)
+            logging.info("Checking for new instructions")
+            self.check_messages()
