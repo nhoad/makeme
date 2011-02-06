@@ -60,8 +60,7 @@ class Email():
 
     def search(self, pattern):
         """Search the message and subject for pattern, return true or false"""
-        return re.search(r'%s' % pattern, self.subject) or \
-            re.search(r'%s' % pattern, self.body)
+        return re.search(r'%s'.lower() % pattern, self.subject.lower()) or re.search(r'%s'.lower() % pattern, self.body.lower())
 
 
 class EmailServer():
