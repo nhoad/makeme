@@ -43,11 +43,13 @@ try:
     patterns = conf['scripts']
     log_file = conf['settings']['log_file']
     log_format = conf['settings']['log_format']
+    log_level = conf['settings']['log_level']
     date_format = conf['settings']['date_format']
     should_fork = eval(conf['settings']['should_fork'])
     contact_address = conf['settings']['contact_address']
     first_email_sent = eval(conf['settings']['first_email_sent'])
     monitor_config = eval(conf['settings']['monitor_config'])
+    reconnect_attempts = eval(conf['settings']['reconnect_attempts'])
 
 except KeyError as e:
     print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
@@ -63,11 +65,9 @@ if should_fork:
         print("FATAL ERROR WHILE FORKING: {0}".format(e))
         sys.exit(12)
 
+log_level = eval("logging.{0}".format(log_level.upper()))
 # I explicitly don't start logging before forking to prevent deadlocks.
-logging.basicConfig(filename=log_file, \
-    level=logging.DEBUG, \
-    format=log_format,\
-    datefmt=date_format)
+logging.basicConfig(filename=log_file, level=log_level, format=log_format, datefmt=date_format)
 
 try:
     server = EmailServer(username, password)
@@ -105,8 +105,9 @@ except ValueError as e:
     if monitor:
         monitor.stop()
     shutdown(1)
-#except Exception as e:
-#    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
-#    if monitor:
-#        monitor.stop()
-#    shutdown(5)
+except Exception as e:
+    print("UNKNOWN ERROR OCCURRED: {0}".format(e))
+    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
+    if monitor:
+        monitor.stop()
+    shutdown(5)

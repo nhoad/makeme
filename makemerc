@@ -1,15 +1,16 @@
-#example config file
 [settings]
-username = username@useraddress.com
+username = username
 password = password
 refresh_time = s5
 log_file = makeme.log
 log_format = [%(asctime)s] %(levelname)s: %(message)s
 date_format = %Y-%m-%d %H:%M:%S
 should_fork = False
-# this address is for sending errors to
-contact_address = contact@email.com
-first_email_sent = False
+contact_address = nathan@getoffmalawn.com
+first_email_sent = True
+monitor_config = True
+reconnect_attempts = 5
+log_level = debug
 
 [scripts]
 start.download = download.py
@@ -17,4 +18,5 @@ transmission = transmission.py
 deluge = deluge-remote.py
 send.file = sendfile.py
 test = test.py
-mpd = mpd.py
+music = mpd-remote.py
+open = open.py

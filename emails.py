@@ -252,7 +252,8 @@ class EmailServer():
     def run(self, refresh_time):
         """docstring for run"""
 
-        self.refresh_time = functions.calculate_refresh(refresh_time)
+        functions.calculate_refresh(refresh_time)
+        self.refresh_time = refresh_time
 
         while True:
             self.lock.acquire()
