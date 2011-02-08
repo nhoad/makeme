@@ -1,1 +1,4 @@
-#output simple command to change the checkup speed
+#!/usr/bin/python
+import sys
+
+sys.stderr.write("Change update is not yet implemented!\n")

@@ -10,7 +10,7 @@ from twisted.internet import reactor
 from deluge.core import torrentmanager
 
 from deluge.log import setupLogger
-setupLogger(level='debug')
+setupLogger()
 
 add_pattern = r'ADD (\S+)' # DONE
 add_stop_pattern = r'ADD-STOP (\S+)' # DONE, but no pausing.
@@ -180,11 +180,14 @@ def help():
         stderr_print("ADD-STOP link -- Add the link to transmission and stop")
         stderr_print("SERVER ip-or-domain-name -- the ip or domain name of the server hosting transmission. Default localhost")
         stderr_print("PORT port -- the port that Transmission is using on the server. Default 9091")
-        stderr_print("TURTLE-ON -- down-speed turn on turtle mode, and set download limit to down-speed. Down-speed is optional")
-        stderr_print("TURTLE-OFF -- turn turtle mode off")
+        stderr_print("MAX-UP amount -- limit the maximum upload speed.")
+        stderr_print("MAX-DOWN amount -- limit the maximum download speed.")
         stderr_print("START ids -- space delimited ids of torrents to start. Accepts ALL to start all torrents")
         stderr_print("STOP ids -- space delimited ids of torrents to stop. Accepts ALL to stop all torrents")
         stderr_print("PROGRESS -- output torrent id, name and progress in percent")
+        stderr_print("USERNAME user -- the username to log into deluge with.")
+        stderr_print("PASSWORD pass -- the password to log into deluge with.")
+
         return True
 
     return False

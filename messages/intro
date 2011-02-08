@@ -1,0 +1,9 @@
+Welcome to makeme! This piece of software was built on the idea that remote "administration" is too complicated for some people, especially when using mobile devices.
+
+Using makeme, you can control your computer from anywhere in the world, as long as you have email available.
+
+Simply send an email to the address specified in your makeme config file specifying what you want to do, and it will get done!
+
+For a list of built in scripts, simply send an email with the subject help. Or for help with a specific script, email with the usual subject name and help in the body of the email.
+
+This text can be customised by going to the messages folder and editing intro.

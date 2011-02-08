@@ -27,7 +27,13 @@ class DownloadThread(Thread):
             if e.errno == errno.ENOENT:
                 print "ERROR: Could not save %s" % self.link
 
+def show_help():
+    sys.stderr.write("To use this script, simply put a bunch of links to the files you want to download and send it. They'll be saved in your Downloads folder.\n")
+    sys.exit(0)
+
 if __name__ == "__main__":
+    if sys.argv[4].find('HELP') != -1:
+        show_help()
 
     links = re.findall(search_pattern, sys.argv[4])
 

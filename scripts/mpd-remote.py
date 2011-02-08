@@ -5,12 +5,22 @@ import sys
 
 sys.argv[4] = sys.argv[4].upper()
 
+def stderr_print(output):
+    sys.stderr.write(output + '\n')
+
+if sys.argv[4].find('HELP') != -1:
+    stderr_print("prev - play previous song")
+    stderr_print("next - play next song")
+    stderr_print("play - play music")
+    stderr_print("pause - pause music")
+    stderr_print("stats - display uptime, db playtime, artists albums and songs count")
+    stderr_print("volume - set the volume. Can be given a number to set it to (0 - 100) or + or - and a number to raise or lower it.")
+    stderr_print("search - search for and display a list of all songs in the database. First argument should be the field type, i.e. artist, title, or even any. The second should be the search term.")
+    sys.exit(0)
+
 client = MPDClient()
 
 client.connect(host='localhost', port='6600')
-
-def stderr_print(output):
-    sys.stderr.write(output + '\n')
 
 if sys.argv[4].find("NEXT") != -1:
     client.next()

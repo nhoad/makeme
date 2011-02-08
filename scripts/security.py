@@ -7,7 +7,13 @@ sys.path.append('/'.join(os.getcwd().split('/')[:-1]))
 import config
 
 def stderr_print(text):
-    sys.stderr.print(text + '\n')
+    sys.stderr.write(text + '\n')
+
+if sys.argv[4].upper().find('HELP') != -1:
+    stderr_print("This script can be used by any other script to ensure only authorised users are able to send instructions.")
+    stderr_print("To set the password, run this script outside makeme with the args 'set <password>' where password is the one you want to use. It will be stored in your makeme config and called by every script that implements security.")
+    stderr_print("To actually use it to ensure that you can get your instructions acted on, simply put security <password> into the body of your email.")
+    sys.exit(0)
 
 def get_password():
     """This should read from a text file, or a user's config, or something like that."""
@@ -32,7 +38,7 @@ if __name__ == "__main__":
     else:
         print "You can only run this script to set your password"
 else:
-    result = re.search(r'SECURITY (\S+)', sys.argv[4])
+    result = re.search(r'SECURITY (\S+)', sys.argv[4].upper())
 
     if result:
         stored_password = get_password()

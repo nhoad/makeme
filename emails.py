@@ -184,12 +184,11 @@ class EmailServer():
         logging.debug("Message sent")
 
     def send_intro_email(self):
-        """docstring for send_intro_email"""
-        message = """\
-        Welcome to makeme! This piece of software was built on the idea of
-        simple remote "administration". You can use this to communicate with
-        your computer from anywhere in the world, simply by sending an email
-        to an address you have specified. """
+        """Send the introductory email to the specified contact address"""
+
+        f = open(os.path.join(os.getcwd(), "/messages/intro", 'r'))
+        message = ''.join(f.readlines())
+        f.close()
 
         if self.contact_address is None:
             logging.info("Inntroductory email can't be sent. No contact address specified.")

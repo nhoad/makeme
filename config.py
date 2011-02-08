@@ -56,6 +56,8 @@ class Config(dict):
                     value = " ".join(line[1:]).strip()
                     self[section][key] = value
 
+        conf.close()
+
         return True
 
     def __bool__(self):
