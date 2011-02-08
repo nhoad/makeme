@@ -194,7 +194,7 @@ class EmailServer():
         if self.contact_address is None:
             logging.info("Inntroductory email can't be sent. No contact address specified.")
 
-        self.send_email(Email(self.contact_address, "Welcome to makeme!", message))
+        self.send_email(Email(sender=self.username, receiver=self.contact_address, subject="Welcome to makeme!", body=message))
 
     def receive_mail(self):
         """Retrieve all unread messages and return them as a list of Emails"""

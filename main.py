@@ -105,9 +105,9 @@ except ValueError as e:
     if monitor:
         monitor.stop()
     shutdown(1)
-except Exception as e:
-    print("UNKNOWN ERROR OCCURRED: {0}".format(e))
-    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
-    if monitor:
-        monitor.stop()
-    shutdown(5)
+#except Exception as e:
+#    print("UNKNOWN ERROR OCCURRED: {0}".format(e))
+#    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
+#    if monitor:
+#        monitor.stop()
+#    shutdown(5)
