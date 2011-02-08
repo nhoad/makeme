@@ -11,6 +11,7 @@ import threading
 from threading import Thread
 from subprocess import Popen, PIPE
 from smtplib import SMTPServerDisconnected
+import re
 
 from emails import Email
 import config
@@ -66,8 +67,30 @@ class MessageProcessThread(Thread):
 
     # TODO complete this method
     def process_script(self):
-        """docstring for process_script"""
-        return False
+        """Process the standard output for any scripting commands to be handled."""
+        if len(self.script) == 0:
+            return False
+
+        to = self.message.sender
+        subject = "RE: {0}".format(self.message.subject)
+        body = self.reply_message
+
+        email = Email(receiver=to, subject=subject, body=body)
+
+        for line in self.script.split('\n'):
+            search = re.compile(r'attach_file (\S+)', re.IGNORECASE)
+            result = search.search(line)
+            if result:
+                email.attach_file(result.groups()[0])
+
+            search = re.compile(r'change_reply_address (\S+)', re.IGNORECASE)
+            result = search.search(line)
+            if result:
+                email.receiver  = result.groups()[0]
+
+        self.sender.send_email(email)
+
+        return True
 
     def process_message(self):
         """docstring for process_message"""

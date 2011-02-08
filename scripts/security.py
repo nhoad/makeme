@@ -38,7 +38,8 @@ if __name__ == "__main__":
     else:
         print "You can only run this script to set your password"
 else:
-    result = re.search(r'SECURITY (\S+)', sys.argv[4].upper())
+    search = re.compile(r'security (\S+)', re.IGNORECASE)
+    result = search.search(sys.argv[4].upper())
 
     if result:
         stored_password = get_password()

@@ -10,6 +10,7 @@ import smtplib
 import imaplib
 import re
 import time
+import os
 
 from smtplib import SMTPAuthenticationError
 from email import encoders
@@ -49,16 +50,14 @@ class Email():
         self.filename = None
 
     #TODO complete this
-    def attach_file(self, filename, data):
+    def attach_file(self, filename):
         """Attach a file to the email object
 
         Keyword arguments:
-        filename -- the name of the file, with NO PATH. Filename ONLY.
-        data -- binary data of the file.
+        filename -- path to the file.
 
         """
         self.filename = filename
-        self.data = data
 
     def search(self, pattern):
         """Search the message and subject for pattern, return true or false"""
@@ -173,10 +172,11 @@ class EmailServer():
         msg.attach(MIMEText(email.body))
 
         if email.filename:
+            data = open(email.filename, 'rb').read()
             part = MIMEBase('application', 'octet-stream')
-            part.set_payload(email.data)
+            part.set_payload(data)
             encoders.encode_base64(part)
-            part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format(email.filename))
+            part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format(os.path.basename(email.filename)))
 
             msg.attach(part)
 
@@ -246,10 +246,21 @@ class EmailServer():
         threads.ProcessThreadsStarter(self, self.patterns).start()
 
     def add_email_to_queue(self,email):
+        """Add an email to the queue, to be sent when SMTP reconnects.
+
+        Keyword Arguments:
+        email -- the Email object to add to the queue.
+
+        """
         self.unsent_emails.append(email)
 
     def run(self, refresh_time):
-        """docstring for run"""
+        """Run the server.
+
+        Keyword Arguments:
+        refresh_time -- the refresh time read from the config file. Should be a string.
+
+        """
 
         functions.calculate_refresh(refresh_time)
         self.refresh_time = refresh_time
