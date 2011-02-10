@@ -73,6 +73,7 @@ try:
     server = EmailServer(username, password)
     server.contact_address = contact_address
     server.patterns = patterns
+    server.reconnect_attempts = reconnect_attempts
     server.login_smtp()
 
     if not first_email_sent:
@@ -85,13 +86,7 @@ try:
         monitor = functions.monitor(conf.file_name, server)
 
     server.run(refresh_time)
-    #while True:
-    #    refresh_time = self.refresh_time
-    #    new_refresh = calculate_refresh(refresh_time, True)
-    #    logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
-    #    time.sleep(new_refresh)
-    #    logging.info("Checking for new instructions")
-    #    server.check_messages()
+
 except KeyboardInterrupt:
     if monitor:
         monitor.stop()

@@ -40,23 +40,21 @@ class Config(dict):
             self.clear()
 
         section_pattern = re.compile('^\[\S+\]$')
-        conf = open(file_name, 'r')
-        section = ""
+        with open(file_name, 'r') as conf:
+            section = ""
 
-        for line in conf.readlines():
-            line = line.strip()
-            line = remove_comments(line)
-            if line:
-                if section_pattern.search(line):
-                    section = line[1:-1]
-                    self[section] = {}
-                else:
-                    line = line.split("=")
-                    key = line[0].strip()
-                    value = " ".join(line[1:]).strip()
-                    self[section][key] = value
-
-        conf.close()
+            for line in conf.readlines():
+                line = line.strip()
+                line = remove_comments(line)
+                if line:
+                    if section_pattern.search(line):
+                        section = line[1:-1]
+                        self[section] = {}
+                    else:
+                        line = line.split("=")
+                        key = line[0].strip()
+                        value = " ".join(line[1:]).strip()
+                        self[section][key] = value
 
         return True
 
@@ -65,14 +63,11 @@ class Config(dict):
 
     def save(self):
         """Save the config to file_name"""
-        output = open(self.file_name, 'w')
-
-        for k in self.keys():
-            output.write("[{0}]\n".format(k))
-            for s in self[k]:
-                output.write("{0} = {1}\n".format(s, self[k][s]))
-
-        output.close()
+        with open(self.file_name, 'w') as output:
+            for k in self.keys():
+                output.write("\n[{0}]\n".format(k))
+                for s in self[k]:
+                    output.write("{0} = {1}\n".format(s, self[k][s]))
 
 
 def get_config(user_file, global_file):

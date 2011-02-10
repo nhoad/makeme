@@ -112,7 +112,21 @@ class ProcessThreadsStarter(Thread):
         self.name = "ProcessThreadStarter"
 
     def run(self):
-        self.messages = self.server.receive_mail()
+        self.messages = None
+
+        # +1 because the first time isn't really an attempt.
+        for i in range(self.server.reconnect_attempts + 1):
+            try:
+                self.messages = self.server.receive_mail()
+            except smtplib.SMTPServerDisconnected as e:
+                if i == self.server.reconnect_attempts:
+                    logging.critical('Could not connect to the IMAP server!')
+                    raise throw ShutdownException(10)
+                time.sleep(30)
+                continue
+
+        if self.messages == None:
+
         self.lock = self.server.lock
 
         if len(self.messages) == 0:
