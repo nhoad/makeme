@@ -33,12 +33,15 @@ I suggest using ~/bin with a symbolic link.
       :N -- where N is the time past the hour to check, e.g. :20 would check at 9:20, 10:20 etc.
       /N -- where N is the number of minutes to wait before checking, normalised. So /10 would be 9:10, 9:20, 9:30 etc.
    log_file = where to log events. Can be full path or filename only to store in current working directory.
-      default: makeme.log
    log_format = log format. Should be left as default, but if you want to change it consult the logging documentation.
-      default: [%(asctime)s] %(levelname)s: %(message)s
    date_format = date format for logging. Should be default, but consult logging documentation to change.
-      default: %Y-%m-%d %H:%M:%S
    should_fork = True to fork to background, False to stay in foreground.
+   log_level = the level of logging you'd like. Should be either debug, critical, error or info.
+   reconnect_attempts = the amount of times the server should try to reconnect, if the IMAP or SMTP connections are lost.
+   contact_address = the email address the server should contact if a crash occurs, or to send information messages.
+   first_email_sent = program controlled value. To get the intro email again, change to False.
+   monitor_config = monitor the config file for changes.
+
 
    [scripts]
    This section deals with what script to run when particular emails arrive
