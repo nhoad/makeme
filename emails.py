@@ -81,6 +81,12 @@ class EmailServer():
         self.receiver = None
         self.unsent_emails = []
         self.contact_address = None
+        self.smtp_server = 'smtp.gmail.com'
+        self.smtp_port = 587
+        self.imap_server = 'imap.gmail.com'
+        self.imap_port = 993
+        self.imap_use_ssl = True
+        self.smtp_use_tls = True
         self.lock = Lock()
 
     def __del__(self):
@@ -93,6 +99,16 @@ class EmailServer():
             self.logout_imap()
 
     def reload_values(self, username, password, contact_address, patterns, refresh_time):
+        """Change particular stored values and update them accordingly
+
+        Keyword arguments:
+        username -- the new username to change to (for imap and smtp)
+        password -- the new password to change to (for imap and smtp)
+        contact_address -- the new address to be contacted for on crashes or info messages
+        patterns -- the new patterns to check new messages against
+        refresh_time -- the new refresh time, how often to check for messages
+
+        """
         logging.info("Config file was changed, reloading...")
         self.lock.acquire()
         if self.password != password or self.username != username:
@@ -107,6 +123,33 @@ class EmailServer():
         self.refresh_time = refresh_time
 
         self.lock.release()
+
+    def set_imap(self, imap_server, imap_port, use_ssl):
+        """set the IMAP server settings.
+
+        Keyword arguments:
+        imap_server -- IP address or domain to connect to.
+        imap_port -- port to connect through.
+        use_ssl -- should the connection be secure?
+
+        """
+        self.imap_server = imap_server
+        self.imap_port = imap_port
+        self.imap_use_ssl = use_ssl
+        self.smtp_use_tls = True
+
+    def set_smtp(self, smtp_server, smtp_port, use_tls):
+        """set the IMAP server settings.
+
+        Keyword arguments:
+        smtp_server -- IP address or domain to connect to.
+        smtp_port -- port to connect through.
+        use_tls -- should the connection be secure?
+
+        """
+        self.smtp_server = smtp_server
+        self.smtp_port = smtp_port
+        self.smtp_use_tls = use_tls
 
     def logout_imap(self):
         """Logout the IMAP account. Keeps things tidy."""
@@ -124,9 +167,10 @@ class EmailServer():
         """login the SMTP client"""
         logging.debug("Logging in SMTP")
         try:
-            self.sender = smtplib.SMTP('smtp.gmail.com:587')
+            self.sender = smtplib.SMTP(self.smtp_server, self.smtp_port)
             self.sender.ehlo()
-            self.sender.starttls()
+            if self.smtp_use_tls:
+                self.sender.starttls()
             self.sender.ehlo()
             self.sender.login(self.username, self.password)
             logging.info("SMTP logged in")
@@ -144,7 +188,11 @@ class EmailServer():
             if self.receiver is not None:
                 self.receiver.logout()
 
-            self.receiver = imaplib.IMAP4_SSL('imap.gmail.com', 993)
+            if self.imap_use_ssl:
+                self.receiver = imaplib.IMAP4_SSL(self.imap_server, self.imap_port)
+            else:
+                self.receiver = imaplib.IMAP4(self.imap_server, self.imap_port)
+
             self.receiver.login(self.username, self.password)
             self.receiver.select()
         except Exception as e:

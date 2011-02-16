@@ -121,11 +121,9 @@ class ProcessThreadsStarter(Thread):
             except smtplib.SMTPServerDisconnected as e:
                 if i == self.server.reconnect_attempts:
                     logging.critical('Could not connect to the IMAP server!')
-                    raise throw ShutdownException(10)
+                    raise ShutdownException(10)
                 time.sleep(30)
                 continue
-
-        if self.messages == None:
 
         self.lock = self.server.lock
 

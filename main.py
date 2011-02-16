@@ -30,7 +30,10 @@ conf = config.get_config(user_file, global_file)
 
 contact_address = None
 monitor = None
+
 monitor_config = False
+should_fork = True
+first_email_sent = False
 
 if not conf:
     print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
@@ -41,19 +44,25 @@ try:
     username = conf['settings']['username']
     password = conf['settings']['password']
     patterns = conf['scripts']
-    log_file = conf['settings']['log_file']
-    log_format = conf['settings']['log_format']
-    log_level = conf['settings']['log_level']
-    date_format = conf['settings']['date_format']
-    should_fork = eval(conf['settings']['should_fork'])
     contact_address = conf['settings']['contact_address']
-    first_email_sent = eval(conf['settings']['first_email_sent'])
-    monitor_config = eval(conf['settings']['monitor_config'])
     reconnect_attempts = eval(conf['settings']['reconnect_attempts'])
 
 except KeyError as e:
     print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
     sys.exit(4)
+
+if 'should_fork' in conf['settings']:
+    should_fork = eval(conf['settings']['should_fork'])
+
+if 'first_email_sent' in conf['settings']:
+    first_email_sent = eval(conf['settings']['first_email_sent'])
+
+if 'monitor_config' in conf['settings']:
+    monitor_config = eval(conf['settings']['monitor_config'])
+
+log_file, log_level, log_format, date_format = functions.get_log_settings(conf)
+smtp_server, smtp_port, smtp_use_tls = functions.get_smtp_settings(conf)
+imap_server, imap_port, imap_use_ssl = functions.get_imap_settings(conf)
 
 if should_fork:
     try:
@@ -74,6 +83,8 @@ try:
     server.contact_address = contact_address
     server.patterns = patterns
     server.reconnect_attempts = reconnect_attempts
+    server.set_imap(imap_server, imap_port, imap_use_ssl)
+    server.set_smtp(smtp_server, smtp_port, smtp_use_tls)
     server.login_smtp()
 
     if not first_email_sent:

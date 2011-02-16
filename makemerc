@@ -5,12 +5,19 @@ refresh_time = s5
 log_file = makeme.log
 log_format = [%(asctime)s] %(levelname)s: %(message)s
 date_format = %Y-%m-%d %H:%M:%S
+log_level = debug
 should_fork = False
-contact_address = nathan@getoffmalawn.com
+contact_address = email_to_contact
 first_email_sent = True
 monitor_config = True
 reconnect_attempts = 5
 log_level = debug
+smtp_server = smtp.gmail.com
+smtp_port = 587
+smtp_use_tls = True
+imap_server = imap.gmail.com
+imap_port = 993
+imap_use_ssl = True
 
 [scripts]
 start.download = download.py

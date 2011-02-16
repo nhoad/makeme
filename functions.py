@@ -70,6 +70,71 @@ def get_time():
     return int(time.strftime("%M"))
 
 
+def get_imap_settings(conf):
+    """Tries to get the imap options from the config file. If it can't find them, return defaults.
+
+    Keyword arguments:
+    conf -- the Config object to read from
+
+    """
+    try:
+        imap_server = conf['settings']['imap_server']
+        imap_port = conf['settings']['imap_port']
+        imap_use_ssl = conf['settings']['imap_use_ssl']
+
+        return imap_server, imap_port, imap_use_ssl
+    except KeyError as e:
+        imap_server = 'imap.gmail.com'
+        imap_port = 993
+        imap_use_ssl = True
+
+        return imap_server, imap_port, imap_use_ssl
+
+def get_smtp_settings(conf):
+    """Tries to get the smtp options from the config file. If it can't find them, return defaults.
+
+    Keyword arguments:
+    conf -- the Config object to read from
+
+    """
+    try:
+        smtp_server = conf['settings']['smtp_server']
+        smtp_port = conf['settings']['smtp_port']
+        smtp_use_ssl = conf['settings']['smtp_use_tls']
+
+        return imap_server, imap_port, imap_use_ssl
+    except KeyError as e:
+        smtp_server = 'smtp.gmail.com'
+        smtp_port = 587
+        smtp_use_tls = True
+
+        return smtp_server, smtp_port, smtp_use_tls
+
+
+def get_log_settings(conf):
+    """Tries to get the log file options from the config file. If it can't find them, return defaults.
+
+    Keyword arguments:
+    conf -- the Config object to read from
+
+    """
+    try:
+        log_file = conf['settings']['log_file']
+        log_format = conf['settings']['log_format']
+        log_level = conf['settings']['log_level']
+        date_format = conf['settings']['date_format']
+        return log_file, log_level, log_format, date_format
+    except KeyError as e:
+        print("{0} could not be found in the config file. Defaults log options will be used.".format(e))
+
+        log_file = 'makeme.log'
+        log_level = 'debug'
+        log_format = '[%(asctime)s] %(levelname)s: %(message)s'
+        date_format = '%Y-%m-%d %H:%M:%S'
+
+        return log_file, log_level, log_format, date_format
+
+
 def calculate_refresh(refresh_time, refresh_time_checked=False):
     """Calculate how long until instructions should be checked
 
