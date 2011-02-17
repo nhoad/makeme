@@ -115,11 +115,17 @@ class ProcessThreadsStarter(Thread):
 
     def run(self):
         """Checks the server for messages, and if it finds any it creates a MessageProcessThread for each email"""
+
+        # make sure only one ProcessThreadStarter is running at a time.
+        for t in threading.enumerate():
+            if t.name == self.name and self != t:
+                return
+
         self.messages = None
 
-        # +1 because the first time isn't really an attempt.
         self.lock.acquire()
 
+        # +1 because the first time isn't really an attempt.
         for i in range(self.server.reconnect_attempts + 1):
             try:
                 self.messages = self.server.receive_mail()

@@ -169,7 +169,7 @@ def calculate_refresh(refresh_time, refresh_time_checked=False):
             if desired_time == 0:
                 return 60 - current_time
             elif desired_time == current_time:
-                return 0
+                return 3600 # wait an hour, don't go right now!
             elif desired_time > current_time:
                 return (desired_time - current_time) * 60
             else:
