@@ -111,6 +111,7 @@ except ValueError as e:
     if monitor:
         monitor.stop()
     shutdown(1)
+# when the code is very nice and it rarely crashes, I intend on using the below code to safely trap all errors.
 #except Exception as e:
 #    print("UNKNOWN ERROR OCCURRED: {0}".format(e))
 #    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))

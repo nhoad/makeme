@@ -13,6 +13,15 @@ from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRI
 import config
 
 def monitor(filename, server):
+    """Monitor the config file for changes and update the server's values when they do.
+
+    Using pyinotify, it checks the config file for changes and tells the server to make changes when they occur. Starts and returns the ThreadedNotifier that is created.
+
+    Keyword arguments:
+    filename -- the name of the file you want to monitor. Note that it won't actually monitor this file, but the directory it resides in.
+    server -- the EmailServer currently running, to pass the new values to when they're changed.
+
+    """
     print("Beginning Monitoring for {0}".format(filename))
     class PClose(ProcessEvent):
         def __init__(self, server, filename):
@@ -51,8 +60,8 @@ def monitor(filename, server):
     wm.add_watch(os.path.split(filename)[0], IN_CLOSE_WRITE, rec=True)
 
     notifier.start()
-
     return notifier
+
 
 def shutdown(exitcode=0):
     """Shutdown makeme nicely.
@@ -66,7 +75,7 @@ def shutdown(exitcode=0):
 
 
 def get_time():
-    """Returns the current minutes past."""
+    """Returns the current minutes past the hour."""
     return int(time.strftime("%M"))
 
 

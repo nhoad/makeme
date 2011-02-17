@@ -65,7 +65,6 @@ class MessageProcessThread(Thread):
 
                 return
 
-    # TODO complete this method
     def process_script(self):
         """Process the standard output for any scripting commands to be handled."""
         if len(self.script) == 0:
@@ -77,23 +76,23 @@ class MessageProcessThread(Thread):
 
         email = Email(receiver=to, subject=subject, body=body)
 
+        attach_pattern = re.compile(r'attach_file (\S+)', re.IGNORECASE)
+        reply_pattern = re.compile(r'change_reply_address (\S+)', re.IGNORECASE)
+
         for line in self.script.split('\n'):
-            search = re.compile(r'attach_file (\S+)', re.IGNORECASE)
-            result = search.search(line)
+            result = attach_pattern.search(line)
             if result:
                 email.attach_file(result.groups()[0])
-
-            search = re.compile(r'change_reply_address (\S+)', re.IGNORECASE)
-            result = search.search(line)
-            if result:
-                email.receiver  = result.groups()[0]
+            else:
+                result = reply_pattern.search(line)
+                if result:
+                    email.receiver  = result.groups()[0]
 
         self.sender.send_email(email)
-
         return True
 
     def process_message(self):
-        """docstring for process_message"""
+        """Process the stanard error for all output to be sent back to the user."""
         to = self.message.sender
         subject = "RE: {0}".format(self.message.subject)
         body = self.reply_message
@@ -102,6 +101,7 @@ class MessageProcessThread(Thread):
 
 class ProcessThreadsStarter(Thread):
     """Thread for starting a MessageProcessThread for each email.
+
     Prevents the main program flow from becoming too blocked
 
     """
@@ -110,14 +110,20 @@ class ProcessThreadsStarter(Thread):
         self.server = server
         self.patterns = patterns
         self.name = "ProcessThreadStarter"
+        self.lock = self.server.lock
+        self.children = []
 
     def run(self):
+        """Checks the server for messages, and if it finds any it creates a MessageProcessThread for each email"""
         self.messages = None
 
         # +1 because the first time isn't really an attempt.
+        self.lock.acquire()
+
         for i in range(self.server.reconnect_attempts + 1):
             try:
                 self.messages = self.server.receive_mail()
+                break
             except smtplib.SMTPServerDisconnected as e:
                 if i == self.server.reconnect_attempts:
                     logging.critical('Could not connect to the IMAP server!')
@@ -125,24 +131,33 @@ class ProcessThreadsStarter(Thread):
                 time.sleep(30)
                 continue
 
-        self.lock = self.server.lock
+        self.lock.release()
 
         if len(self.messages) == 0:
             logging.info("No instructions were received!")
+
         for message in self.messages:
-            MessageProcessThread(message, self.patterns, self.server, self.lock).start()
+            new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
+            new_thread.start()
+
+            # let's store only threads this thread creates, for sanity later on
+            self.children.append(new_thread)
 
         self.server.logout_imap()
 
-        for f in threading.enumerate():
-            if f.name == self.name or f.name == 'MainThread' or f.name == 'MonitorThread':
-                continue
+        # let's wait for all our child threads to finish. The old code waited
+        # for _every_ thread except ones specified to finish. This is much
+        # more flexible in regards to changes.
+        for f in self.children:
+            if f.is_alive():
+                f.join()
 
-            f.join()
-
+        # TODO: this should handle unsent emails much tidier. If it can't manage to log in, it should save them to a file.
         if len(self.server.unsent_emails) > 0:
+            self.lock.acquire()
             self.server.login_smtp()
 
             for e in self.server.unsent_emails:
                 self.server.send_email(e)
 
+            self.lock.release()

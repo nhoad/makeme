@@ -49,7 +49,6 @@ class Email():
         self.body = body
         self.filename = None
 
-    #TODO complete this
     def attach_file(self, filename):
         """Attach a file to the email object
 
@@ -60,7 +59,12 @@ class Email():
         self.filename = filename
 
     def search(self, pattern):
-        """Search the message and subject for pattern, return true or false"""
+        """Search the message and subject for pattern, return true or false
+
+        Keyword arguments:
+        pattern -- the string to search for, can also be a regular expression
+
+        """
         return re.search(r'%s'.lower() % pattern, self.subject.lower()) or re.search(r'%s'.lower() % pattern, self.body.lower())
 
 
@@ -162,7 +166,6 @@ class EmailServer():
         logging.info("IMAP logged out")
         self.receiver = None
 
-    #TODO make it able to connect to more than Gmail
     def login_smtp(self):
         """login the SMTP client"""
         logging.debug("Logging in SMTP")
@@ -180,7 +183,6 @@ class EmailServer():
             print(message)
             raise ShutdownException(2)
 
-    #TODO make it able to connect to more than Gmail
     def login_imap(self):
         """log in the IMAP client"""
         logging.debug("Logging in IMAP")

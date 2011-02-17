@@ -75,7 +75,7 @@ def get_config(user_file, global_file):
     Returns None if no valid configs were found
 
     Keyword arguments:
-    user_file -- path to the user's config file
+    user_file -- path to the user's config file - this one will be tried first.
     global_file -- path to the global configuration file
 
     """
