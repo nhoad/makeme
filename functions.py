@@ -7,6 +7,7 @@ import logging
 import sys
 import time
 import os
+import math
 
 from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
 
@@ -164,16 +165,19 @@ def calculate_refresh(refresh_time, refresh_time_checked=False):
             if not refresh_time_checked:
                 logging.info("Checking at {0} past, on the hour"\
                     .format(desired_time))
-            if desired_time == current_time:
+
+            if desired_time == 0:
+                return 60 - current_time
+            elif desired_time == current_time:
                 return 0
             elif desired_time > current_time:
                 return (desired_time - current_time) * 60
             else:
-                return ((current_time - desired_time) + 60) * 60
+                return int(math.fabs((current_time - (desired_time + 60)) * 60))
         elif start_char == '/':
             if not refresh_time_checked:
                 logging.info("Next check at {0} minutes, normalised"\
-                    .format(esired_time))
+                    .format(desired_time))
 
             if current_time % desired_time == 0:
                 return desired_time * 60
@@ -184,7 +188,7 @@ def calculate_refresh(refresh_time, refresh_time_checked=False):
             if desired_time > current_time:
                 return (desired_time - current_time) * 60
             else:
-                return current_time - desired_time + 60
+                return int(math.fabs(current_time - (desired_time + 60)))
 
         elif start_char == 's':
             if not refresh_time_checked:
