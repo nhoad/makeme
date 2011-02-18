@@ -41,6 +41,9 @@ class MessageProcessThread(Thread):
                 command.append(self.message.subject)
                 command.append(self.message.body)
 
+                if len(self.message.files) > 0:
+                    command.append(str(self.message.files))
+
                 pipe = Popen(command, stdout=PIPE, stderr=PIPE)
 
                 pipe.wait()
@@ -130,7 +133,7 @@ class ProcessThreadsStarter(Thread):
             try:
                 self.messages = self.server.receive_mail()
                 break
-            except smtplib.SMTPServerDisconnected as e:
+            except SMTPServerDisconnected as e:
                 if i == self.server.reconnect_attempts:
                     logging.critical('Could not connect to the IMAP server!')
                     raise ShutdownException(10)
@@ -142,12 +145,12 @@ class ProcessThreadsStarter(Thread):
         if len(self.messages) == 0:
             logging.info("No instructions were received!")
 
-        for message in self.messages:
-            new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
-            new_thread.start()
+#        for message in self.messages:
+#            new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
+#            new_thread.start()
 
             # let's store only threads this thread creates, for sanity later on
-            self.children.append(new_thread)
+#            self.children.append(new_thread)
 
         self.server.logout_imap()
 

@@ -11,6 +11,7 @@ import imaplib
 import re
 import time
 import os
+import tempfile
 
 from smtplib import SMTPAuthenticationError
 from email import encoders
@@ -47,16 +48,22 @@ class Email():
         self.receiver = receiver
         self.subject = subject
         self.body = body
-        self.filename = None
+        self.files = []
 
-    def attach_file(self, filename):
+    def attach_file(self, filename, filepath=None):
         """Attach a file to the email object
 
+        if filepath is None, then filename will be used as the name as well as the path to the data.
+
         Keyword arguments:
-        filename -- path to the file.
+        filename -- name of the file.
+        filepath -- path to the file data, typically in a temporary directory.
 
         """
-        self.filename = filename
+        self.files.append((filename, filepath))
+
+    def __str__(self):
+        return 'Email <receiver={0}, sender={1}, subject={2}, body={3}>'.format(self.receiver, self.sender, self.subject, self.body)
 
     def search(self, pattern):
         """Search the message and subject for pattern, return true or false
@@ -274,6 +281,8 @@ class EmailServer():
 
                     text = ''
 
+                    e = Email(sender=sender, receiver=receiver, subject=subject)
+
                     #TODO: Add in the magic to add files
                     for part in body.walk():
                         if part.get_content_maintype() == 'multipart':
@@ -282,9 +291,23 @@ class EmailServer():
                         if part.get_content_subtype() != 'plain':
                             continue
 
-                        text = part.get_payload()
+                        if part.get('Content-Disposition') is None:
+                            e.body = part.get_payload()
+                            continue
 
-                    emails.append(Email(sender=sender, receiver=receiver, subject=subject, body=text))
+                        # not sure why I did this, I seem to get the body up the top too.
+
+                        filename = part.get_filename()
+
+                        filepath = tempfile.mkstemp()[1]
+                        fp = open(filepath, 'wb')
+                        fp.write(part.get_payload(decode=True))
+                        fp.close()
+
+                        e.attach_file(filename, filepath)
+
+                    print(e)
+                    emails.append(e)
         else:
             logging.debug("There are NO new emails!")
 
