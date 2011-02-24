@@ -14,6 +14,7 @@ from smtplib import SMTPServerDisconnected
 import re
 
 from emails import Email
+import functions
 import config
 
 
@@ -131,7 +132,9 @@ class ProcessThreadsStarter(Thread):
             self.lock.acquire()
 
             try:
+                self.server.login_imap()
                 self.messages = self.server.receive_mail()
+                self.server.logout_imap()
                 break
             except SMTPServerDisconnected as e:
                 if i == self.server.reconnect_attempts:
@@ -154,8 +157,6 @@ class ProcessThreadsStarter(Thread):
             # store only the threads created by this thread so we don't go waiting for other thread by mistake
             self.children.append(new_thread)
 
-        self.server.logout_imap()
-
         # let's wait for all our child threads to finish. The old code waited
         # for _every_ thread except ones specified to finish. This is much
         # more flexible in regards to changes.
@@ -166,9 +167,14 @@ class ProcessThreadsStarter(Thread):
         # TODO: this should handle unsent emails much tidier. If it can't manage to log in, it should save them to a file.
         if len(self.server.unsent_emails) > 0:
             self.lock.acquire()
-            self.server.login_smtp()
+            try:
+                self.server.login_smtp()
 
-            for e in self.server.unsent_emails:
-                self.server.send_email(e)
+                for e in self.server.unsent_emails:
+                    self.server.send_email(e)
 
-            self.lock.release()
+            except Exception as e:
+                functions.save_emails_to_file(self.server.unsent_emails, 'unsent_emails.log')
+                raise ShutdownException(12)
+            finally:
+                self.lock.release()

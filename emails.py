@@ -314,8 +314,7 @@ class EmailServer():
         return emails
 
     def check_messages(self):
-        """Login via IMAP and create a ProcessThreadStarter for processing."""
-        self.login_imap()
+        """Create a ProcessThreadStarter for processing which will log into the server and start processing."""
         threads.ProcessThreadsStarter(self, self.patterns).start()
 
     def add_email_to_queue(self, email):

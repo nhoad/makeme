@@ -8,10 +8,29 @@ import sys
 import time
 import os
 import math
+import datetime
 
 from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
 
 import config
+
+
+def save_emails_to_file(emails, filename):
+    """Save a list of emails to a file in the current working directory.
+
+    Keyword arguments:
+    emails -- list of Email objects to be saved to file.
+    filename -- the filename to save unsent emails to.
+
+    """
+    now = datetime.datetime.now()
+    date =  '{0}-{1}-{2}'.format(now.day, now.month, now.year)
+    time =  '{0}:{1}:{2}'.format(now.hour, now.minute, now.second)
+    with open(filename, 'a') as f:
+        f.write('On the {0}, at {1}, the following emails could not be sent:\n'.format(date, time))
+
+        for e in emails:
+            f.write('{0}\n'.format(e))
 
 
 def monitor(filename, server):
