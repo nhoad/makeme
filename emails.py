@@ -318,7 +318,7 @@ class EmailServer():
         self.login_imap()
         threads.ProcessThreadsStarter(self, self.patterns).start()
 
-    def add_email_to_queue(self,email):
+    def add_email_to_queue(self, email):
         """Add an email to the queue, to be sent when SMTP reconnects.
 
         Keyword Arguments:

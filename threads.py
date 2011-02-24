@@ -89,7 +89,7 @@ class MessageProcessThread(Thread):
             else:
                 result = reply_pattern.search(line)
                 if result:
-                    email.receiver  = result.groups()[0]
+                    email.receiver = result.groups()[0]
 
         self.sender.send_email(email)
         return True
@@ -115,6 +115,7 @@ class ProcessThreadsStarter(Thread):
         self.name = "ProcessThreadStarter"
         self.lock = self.server.lock
         self.children = []
+        self.messages = None
 
     def run(self):
         """Checks the server for messages, and if it finds any it creates a MessageProcessThread for each email"""
@@ -122,14 +123,13 @@ class ProcessThreadsStarter(Thread):
         # make sure only one ProcessThreadStarter is running at a time.
         for t in threading.enumerate():
             if t.name == self.name and self != t:
+                logging.info('Previous {0} is still running, current will now close.'.format(self.name))
                 return
-
-        self.messages = None
-
-        self.lock.acquire()
 
         # +1 because the first time isn't really an attempt.
         for i in range(self.server.reconnect_attempts + 1):
+            self.lock.acquire()
+
             try:
                 self.messages = self.server.receive_mail()
                 break
@@ -140,17 +140,19 @@ class ProcessThreadsStarter(Thread):
                 time.sleep(30)
                 continue
 
-        self.lock.release()
+            self.lock.release()
 
         if len(self.messages) == 0:
             logging.info("No instructions were received!")
+        else:
+            logging.info("{0} instructions were received!".format(len(self.message)))
 
-#        for message in self.messages:
-#            new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
-#            new_thread.start()
+        for message in self.messages:
+            new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
+            new_thread.start()
 
-            # let's store only threads this thread creates, for sanity later on
-#            self.children.append(new_thread)
+            # store only the threads created by this thread so we don't go waiting for other thread by mistake
+            self.children.append(new_thread)
 
         self.server.logout_imap()
 

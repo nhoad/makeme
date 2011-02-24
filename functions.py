@@ -13,6 +13,7 @@ from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRI
 
 import config
 
+
 def monitor(filename, server):
     """Monitor the config file for changes and update the server's values when they do.
 
@@ -24,6 +25,7 @@ def monitor(filename, server):
 
     """
     print("Beginning Monitoring for {0}".format(filename))
+
     class PClose(ProcessEvent):
         def __init__(self, server, filename):
             self.server = server
@@ -100,6 +102,7 @@ def get_imap_settings(conf):
 
         return imap_server, imap_port, imap_use_ssl
 
+
 def get_smtp_settings(conf):
     """Tries to get the smtp options from the config file. If it can't find them, return defaults.
 
@@ -169,7 +172,7 @@ def calculate_refresh(refresh_time, refresh_time_checked=False):
             if desired_time == 0:
                 return 60 - current_time
             elif desired_time == current_time:
-                return 3600 # wait an hour, don't go right now!
+                return 3600  # wait an hour, don't go right now!
             elif desired_time > current_time:
                 return (desired_time - current_time) * 60
             else:

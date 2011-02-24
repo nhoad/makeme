@@ -7,6 +7,7 @@ Description: Simple ini-file like config parser
 import os
 import re
 
+
 def remove_comments(text):
     """Remove comment tags from text and return it"""
     b = text.find('#')
