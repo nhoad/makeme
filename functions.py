@@ -15,12 +15,13 @@ from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRI
 import config
 
 
-def save_emails_to_file(emails, filename):
+def save_emails_to_file(emails, filename, reason):
     """Save a list of emails to a file in the current working directory.
 
     Keyword arguments:
     emails -- list of Email objects to be saved to file.
     filename -- the filename to save unsent emails to.
+    reason -- the text or exception reason the emails couldn't be sent.
 
     """
     now = datetime.datetime.now()
@@ -28,6 +29,7 @@ def save_emails_to_file(emails, filename):
     time =  '{0}:{1}:{2}'.format(now.hour, now.minute, now.second)
     with open(filename, 'a') as f:
         f.write('On the {0}, at {1}, the following emails could not be sent:\n'.format(date, time))
+        f.write('The reason for this: {0}\n'.format(reason))
 
         for e in emails:
             f.write('{0}\n'.format(e))
@@ -43,7 +45,7 @@ def monitor(filename, server):
     server -- the EmailServer currently running, to pass the new values to when they're changed.
 
     """
-    print("Beginning Monitoring for {0}".format(filename))
+    logging.info('Monitoring {0} for changes'.format(filename))
 
     class PClose(ProcessEvent):
         def __init__(self, server, filename):
@@ -71,10 +73,9 @@ def monitor(filename, server):
                 lock.release()
 
             except KeyError as e:
-                print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
-                print(dir(e))
-                raise e
-                sys.exit(4)
+                logging.info("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
+                self.stop()
+                raise ShutdownException(15)
 
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))
@@ -136,6 +137,7 @@ def get_smtp_settings(conf):
 
         return imap_server, imap_port, imap_use_ssl
     except KeyError as e:
+        print("{0} could not be found in the config file. Default server options will be used (i.e. gmail).".format(e))
         smtp_server = 'smtp.gmail.com'
         smtp_port = 587
         smtp_use_tls = True
@@ -157,7 +159,7 @@ def get_log_settings(conf):
         date_format = conf['settings']['date_format']
         return log_file, log_level, log_format, date_format
     except KeyError as e:
-        print("{0} could not be found in the config file. Defaults log options will be used.".format(e))
+        print("{0} could not be found in the config file. Default log options will be used.".format(e))
 
         log_file = 'makeme.log'
         log_level = 'debug'

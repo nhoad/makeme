@@ -9,6 +9,7 @@ import logging
 import os
 import signal
 import sys
+import traceback
 
 from smtplib import SMTPAuthenticationError
 
@@ -34,6 +35,7 @@ monitor = None
 monitor_config = False
 should_fork = True
 first_email_sent = False
+unsent_save_location = 'unsent_emails.log'
 
 if not conf:
     print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
@@ -60,6 +62,9 @@ if 'first_email_sent' in conf['settings']:
 if 'monitor_config' in conf['settings']:
     monitor_config = eval(conf['settings']['monitor_config'])
 
+if 'unsent_save_location' in conf['settings']:
+    unsent_save_location = conf['settings']['unsent_save_location']
+
 log_file, log_level, log_format, date_format = functions.get_log_settings(conf)
 smtp_server, smtp_port, smtp_use_tls = functions.get_smtp_settings(conf)
 imap_server, imap_port, imap_use_ssl = functions.get_imap_settings(conf)
@@ -83,6 +88,7 @@ try:
     server.contact_address = contact_address
     server.patterns = patterns
     server.reconnect_attempts = reconnect_attempts
+    server.unsent_save_location = unsent_save_location
     server.set_imap(imap_server, imap_port, imap_use_ssl)
     server.set_smtp(smtp_server, smtp_port, smtp_use_tls)
     server.login_smtp()
@@ -112,9 +118,11 @@ except ValueError as e:
         monitor.stop()
     shutdown(1)
 # when the code is very nice and it rarely crashes, I intend on using the below code to safely trap all errors.
-#except Exception as e:
-#    print("UNKNOWN ERROR OCCURRED: {0}".format(e))
-#    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(e))
-#    if monitor:
-#        monitor.stop()
-#    shutdown(5)
+except Exception as e:
+    trace = traceback.format_exc()
+    print(trace, file=sys.stderr)
+    logging.critical("UNKNOWN ERROR OCCURRED: {0}".format(trace))
+    logging.critical('PLEASE CONTACT THE DEVELOPERS REGARDING THIS ISSUE')
+    if monitor:
+        monitor.stop()
+    shutdown(5)

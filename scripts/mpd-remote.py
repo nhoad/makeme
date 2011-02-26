@@ -69,7 +69,10 @@ if sys.argv[4].find("STATS") != -1:
 
     song = client.currentsong()
 
-    print "Now Playing: %s - %s" % (song['artist'], song['title'])
+    try:
+        print "Now Playing: %s - %s" % (song['artist'], song['title'])
+    except KeyError:
+        pass
 
 result = re.search(r'VOLUME (\S+)', sys.argv[4])
 

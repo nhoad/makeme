@@ -46,8 +46,8 @@ class MessageProcessThread(Thread):
                     command.append(str(self.message.files))
 
                 pipe = Popen(command, stdout=PIPE, stderr=PIPE)
-
                 pipe.wait()
+
                 logging.debug("Popen for {0} complete".format(command))
                 # stdout is the "script"
                 self.script = str(pipe.stdout.read(), encoding='utf8')
@@ -66,8 +66,6 @@ class MessageProcessThread(Thread):
                     self.sender.add_email_to_queue(Email(receiver=to, subject=subject, body=body))
 
                 self.lock.release()
-
-                return
 
     def process_script(self):
         """Process the standard output for any scripting commands to be handled."""
@@ -92,7 +90,9 @@ class MessageProcessThread(Thread):
                 if result:
                     email.receiver = result.groups()[0]
 
+        email.sender = self.sender.username
         self.sender.send_email(email)
+
         return True
 
     def process_message(self):
@@ -142,13 +142,13 @@ class ProcessThreadsStarter(Thread):
                     raise ShutdownException(10)
                 time.sleep(30)
                 continue
-
-            self.lock.release()
+            finally:
+                self.lock.release()
 
         if len(self.messages) == 0:
             logging.info("No instructions were received!")
         else:
-            logging.info("{0} instructions were received!".format(len(self.message)))
+            logging.info("{0} instructions were received!".format(len(self.messages)))
 
         for message in self.messages:
             new_thread = MessageProcessThread(message, self.patterns, self.server, self.lock)
@@ -164,7 +164,6 @@ class ProcessThreadsStarter(Thread):
             if f.is_alive():
                 f.join()
 
-        # TODO: this should handle unsent emails much tidier. If it can't manage to log in, it should save them to a file.
         if len(self.server.unsent_emails) > 0:
             self.lock.acquire()
             try:
@@ -174,7 +173,7 @@ class ProcessThreadsStarter(Thread):
                     self.server.send_email(e)
 
             except Exception as e:
-                functions.save_emails_to_file(self.server.unsent_emails, 'unsent_emails.log')
+                functions.save_emails_to_file(self.server.unsent_emails, self.server.unsent_save_location, e)
                 raise ShutdownException(12)
             finally:
                 self.lock.release()

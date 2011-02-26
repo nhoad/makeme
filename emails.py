@@ -11,7 +11,9 @@ import imaplib
 import re
 import time
 import os
+import sys
 import tempfile
+import traceback
 
 from smtplib import SMTPAuthenticationError
 from email import encoders
@@ -185,9 +187,10 @@ class EmailServer():
             self.sender.login(self.username, self.password)
             logging.info("SMTP logged in")
         except SMTPAuthenticationError as e:
-            message = "Error logging into SMTP: {0}".format(e)
+            trace = traceback.format_exc()
+            message = "Error logging into SMTP: {0}".format(trace)
             logging.critical(message)
-            print(message)
+            print(message, file=sys.stderr)
             raise ShutdownException(2)
 
     def login_imap(self):
@@ -228,12 +231,13 @@ class EmailServer():
 
         msg.attach(MIMEText(email.body))
 
-        if email.filename:
-            data = open(email.filename, 'rb').read()
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(data)
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format(os.path.basename(email.filename)))
+        if len(email.files) > 0:
+            for name, path in email.files:
+                data = open(name, 'rb').read()
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(data)
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format(os.path.basename(name)))
 
             msg.attach(part)
 
@@ -306,7 +310,6 @@ class EmailServer():
 
                         e.attach_file(filename, filepath)
 
-                    print(e)
                     emails.append(e)
         else:
             logging.debug("There are NO new emails!")
