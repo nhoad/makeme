@@ -13,6 +13,7 @@ import configparser
 
 from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
 
+
 def encrypt(key, msg):
     """Simple encryption so passwords aren't stored in plain-text.
 
@@ -31,11 +32,12 @@ def encrypt(key, msg):
     enc = []
 
     for i, c in enumerate(msg):
-        key_c = ord(key[ i % len(key)])
+        key_c = ord(key[i % len(key)])
         msg_c = ord(c)
         enc.append(chr((msg_c + key_c) % 127))
 
     return ''.join(enc)
+
 
 def decrypt(key, enc):
     """Simple decryption. Reverse of the encryption function
@@ -55,11 +57,12 @@ def decrypt(key, enc):
     msg = []
 
     for i, c in enumerate(enc):
-        key_c = ord(key[ i % len(key)])
+        key_c = ord(key[i % len(key)])
         msg_c = ord(c)
         msg.append(chr((msg_c - key_c) % 127))
 
     return ''.join(msg)
+
 
 def save_emails_to_file(emails, filename, reason):
     """Save a list of emails to a file in the current working directory.
@@ -71,8 +74,8 @@ def save_emails_to_file(emails, filename, reason):
 
     """
     now = datetime.datetime.now()
-    date =  '{0}-{1}-{2}'.format(now.day, now.month, now.year)
-    time =  '{0}:{1}:{2}'.format(now.hour, now.minute, now.second)
+    date = '{0}-{1}-{2}'.format(now.day, now.month, now.year)
+    time = '{0}:{1}:{2}'.format(now.hour, now.minute, now.second)
     with open(filename, 'a') as f:
         f.write('On the {0}, at {1}, the following emails could not be sent:\n'.format(date, time))
         f.write('The reason for this: {0}\n'.format(reason))
@@ -136,7 +139,6 @@ def monitor(filename, server):
 
     """
     logging.info('Monitoring {0} for changes'.format(filename))
-
 
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))

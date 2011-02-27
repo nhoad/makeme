@@ -38,13 +38,13 @@ class MessageProcessThread(Thread):
 
     def run(self):
         """React accordingly."""
-        for pattern in tuple(self.patterns.keys()):
+        for pattern, command in patterns:
             if self.message.search(pattern):
                 logging.info("executing {0}"\
                     .format(self.patterns[pattern]))
 
                 command = [os.path.normpath(\
-                    os.getcwd() + "/scripts/" + self.patterns[pattern])]
+                    os.getcwd() + "/scripts/" + command)]
                 command.append(self.message.sender)
                 command.append(self.message.receiver)
                 command.append(self.message.subject)
