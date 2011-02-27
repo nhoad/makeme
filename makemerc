@@ -1,29 +1,26 @@
-[settings]
-username = username
-password = password
-refresh_time = s5
-log_file = makeme.log
-log_format = [%(asctime)s] %(levelname)s: %(message)s
-date_format = %Y-%m-%d %H:%M:%S
-log_level = debug
-should_fork = False
-contact_address = email_to_contact
-first_email_sent = True
-monitor_config = True
-reconnect_attempts = 5
-log_level = debug
-smtp_server = smtp.gmail.com
-smtp_port = 587
-smtp_use_tls = True
-imap_server = imap.gmail.com
-imap_port = 993
-imap_use_ssl = True
-
 [scripts]
 start.download = download.py
-transmission = transmission.py
 deluge = deluge-remote.py
+transmission = transmission.py
 send.file = sendfile.py
-test = test.py
 music = mpd-remote.py
+test = test.py
 open = open.py
+help = help.py
+sendfile = sendfile.py
+savefiles = save_files.py
+
+[settings]
+username = remote@getoffmalawn.com
+date_format = %Y-%m-%d %H:%M:%S
+refresh_time = s5
+log_level = debug
+security = 07c3414a95080ec2294d4f32ae5bd2607a74bbc30657c3f61103410d0701b5bbd482320d17d1e56682553fe0a6758183997aaa4d8605b2850fca7e2b6bff8c8f
+reconnect_attempts = 5
+log_file = makeme.log
+contact_address = nathan@getoffmalawn.com
+should_fork = no
+first_email_sent = yes
+log_format = [%(asctime)s] %(levelname)s: %(message)s
+monitor_config = no
+unsent_save_location = unsent_emails.log

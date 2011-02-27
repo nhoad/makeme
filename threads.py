@@ -15,7 +15,6 @@ import re
 
 from emails import Email
 import functions
-import config
 
 
 class MessageProcessThread(Thread):

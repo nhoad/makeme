@@ -9,11 +9,57 @@ import time
 import os
 import math
 import datetime
+import configparser
 
 from pyinotify import WatchManager, ThreadedNotifier, ProcessEvent, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE
 
-import config
+def encrypt(key, msg):
+    """Simple encryption so passwords aren't stored in plain-text.
 
+    Please note that this is quite weak security, and completely breakable
+    with little or no effort. If you take issue with this method, don't
+    hesitate to offer your own implementation. I know very little about
+    security and would be happy for someone to school me on this.
+
+    Keyword arguments:
+    key -- the key to use for encryption. Supa-secret!
+    msg -- the text to be encrypted.
+
+    Returns msg in encrypted form.
+
+    """
+    enc = []
+
+    for i, c in enumerate(msg):
+        key_c = ord(key[ i % len(key)])
+        msg_c = ord(c)
+        enc.append(chr((msg_c + key_c) % 127))
+
+    return ''.join(enc)
+
+def decrypt(key, enc):
+    """Simple decryption. Reverse of the encryption function
+
+    Please note that this is quite weak security, and completely breakable
+    with little or no effort. If you take issue with this method, don't
+    hesitate to offer your own implementation. I know very little about
+    security and would be happy for someone to school me on this.
+
+    Keyword arguments:
+    key -- the key to use for encryption. Supa-secret!
+    msg -- the text to be decrypted.
+
+    Returns enc in decrypted form.
+
+    """
+    msg = []
+
+    for i, c in enumerate(enc):
+        key_c = ord(key[ i % len(key)])
+        msg_c = ord(c)
+        msg.append(chr((msg_c - key_c) % 127))
+
+    return ''.join(msg)
 
 def save_emails_to_file(emails, filename, reason):
     """Save a list of emails to a file in the current working directory.
@@ -55,7 +101,7 @@ class PClose(ProcessEvent):
         if event.name != os.path.split(self.filename)[1]:
             return
 
-        conf = config.Config()
+        conf = configparser.RawConfigParser()
         conf.read(self.filename)
 
         try:
@@ -71,8 +117,8 @@ class PClose(ProcessEvent):
             self.server.reload_values(username, password, contact_address, patterns, refresh_time)
             lock.release()
 
-        except KeyError as e:
-            logging.info("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
+        except configparser.NoOptionError as e:
+            logging.info("{0}. Consult the documentation for help or add the missing option to your config file.".format(e), file=sys.stderr)
             self.stop()
             raise ShutdownException(15)
 
@@ -116,73 +162,6 @@ def shutdown(exitcode=0):
 def get_time():
     """Returns the current minutes past the hour."""
     return int(time.strftime("%M"))
-
-
-def get_imap_settings(conf):
-    """Tries to get the imap options from the config file. If it can't find them, return defaults.
-
-    Keyword arguments:
-    conf -- the Config object to read from
-
-    """
-    try:
-        imap_server = conf['settings']['imap_server']
-        imap_port = conf['settings']['imap_port']
-        imap_use_ssl = conf['settings']['imap_use_ssl']
-
-        return imap_server, imap_port, imap_use_ssl
-    except KeyError as e:
-        imap_server = 'imap.gmail.com'
-        imap_port = 993
-        imap_use_ssl = True
-
-        return imap_server, imap_port, imap_use_ssl
-
-
-def get_smtp_settings(conf):
-    """Tries to get the smtp options from the config file. If it can't find them, return defaults.
-
-    Keyword arguments:
-    conf -- the Config object to read from
-
-    """
-    try:
-        smtp_server = conf['settings']['smtp_server']
-        smtp_port = conf['settings']['smtp_port']
-        smtp_use_ssl = conf['settings']['smtp_use_tls']
-
-        return imap_server, imap_port, imap_use_ssl
-    except KeyError as e:
-        print("{0} could not be found in the config file. Default server options will be used (i.e. gmail).".format(e))
-        smtp_server = 'smtp.gmail.com'
-        smtp_port = 587
-        smtp_use_tls = True
-
-        return smtp_server, smtp_port, smtp_use_tls
-
-
-def get_log_settings(conf):
-    """Tries to get the log file options from the config file. If it can't find them, return defaults.
-
-    Keyword arguments:
-    conf -- the Config object to read from
-
-    """
-    try:
-        log_file = conf['settings']['log_file']
-        log_format = conf['settings']['log_format']
-        log_level = conf['settings']['log_level']
-        date_format = conf['settings']['date_format']
-        return log_file, log_level, log_format, date_format
-    except KeyError as e:
-        print("{0} could not be found in the config file. Default log options will be used.".format(e))
-
-        log_file = 'makeme.log'
-        log_level = 'debug'
-        log_format = '[%(asctime)s] %(levelname)s: %(message)s'
-        date_format = '%Y-%m-%d %H:%M:%S'
-
-        return log_file, log_level, log_format, date_format
 
 
 def calculate_refresh(refresh_time, refresh_time_checked=False):

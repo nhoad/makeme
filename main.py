@@ -10,10 +10,10 @@ import os
 import signal
 import sys
 import traceback
+import configparser
 
 from smtplib import SMTPAuthenticationError
 
-import config
 import functions
 import threads
 
@@ -27,50 +27,60 @@ signal.signal(signal.SIGTERM, shutdown)
 
 global_file = "/usr/share/makeme/makemerc"
 user_file = os.path.join(os.environ['HOME'], ".makemerc")
-conf = config.get_config(user_file, global_file)
 
-if not conf:
-    print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
-    sys.exit(1)
-
+default_options = {}
 monitor = None
 
 # we set the default options for unrequired config file stuff here
-contact_address = None
-monitor_config = False
-should_fork = True
-first_email_sent = False
-unsent_save_location = 'unsent_emails.log'
+default_options['contact_address'] = None
+default_options['monitor_config'] = 'no'
+default_options['should_fork'] = 'yes'
+default_options['first_email_sent'] = 'no'
+default_options['unsent_save_location'] = 'unsent_emails.log'
+default_options['imap_server'] = 'imap.gmail.com'
+default_options['imap_port'] = 993
+default_options['imap_use_ssl'] = 'yes'
+default_options['smtp_server'] = 'smtp.gmail.com'
+default_options['smtp_port'] = 587
+default_options['smtp_use_tls'] = 'yes'
+default_options['log_file'] = 'makeme.log'
+default_options['log_level'] = 'debug'
+default_options['log_format'] = '[%(asctime)s] %(levelname)s: %(message)s'
+default_options['date_format'] = '%Y-%m-%d %H:%M:%S'
+
+conf = configparser.RawConfigParser(default_options)
+conf.read(global_file)
+if not conf.read(user_file):
+    print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
+    sys.exit(1)
 
 # now let's get the config stuff that the user NEEDS to set.
 try:
-    refresh_time = conf['settings']['refresh_time']
-    username = conf['settings']['username']
-    password = conf['settings']['password']
-    patterns = conf['scripts']
-    contact_address = conf['settings']['contact_address']
-    reconnect_attempts = eval(conf['settings']['reconnect_attempts'])
+    refresh_time = conf.get('settings', 'refresh_time')
+    username = conf.get('settings', 'username')
+    password = functions.decrypt(username, conf.get('settings', 'password'))
+    patterns = conf.items('scripts')
+    contact_address = conf.get('settings', 'contact_address')
+    reconnect_attempts = conf.getint('settings', 'reconnect_attempts')
 
-except KeyError as e:
-    print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
+except configparser.NoOptionError as e:
+    print('{0}. Consult the documentation for help or add the missing option to your config file.'.format(e), file=sys.stderr)
     sys.exit(4)
 
-# all the optional arguments that don't really matter.
-if 'should_fork' in conf['settings']:
-    should_fork = eval(conf['settings']['should_fork'])
-
-if 'first_email_sent' in conf['settings']:
-    first_email_sent = eval(conf['settings']['first_email_sent'])
-
-if 'monitor_config' in conf['settings']:
-    monitor_config = eval(conf['settings']['monitor_config'])
-
-if 'unsent_save_location' in conf['settings']:
-    unsent_save_location = conf['settings']['unsent_save_location']
-
-log_file, log_level, log_format, date_format = functions.get_log_settings(conf)
-smtp_server, smtp_port, smtp_use_tls = functions.get_smtp_settings(conf)
-imap_server, imap_port, imap_use_ssl = functions.get_imap_settings(conf)
+should_fork = conf.getboolean('settings', 'should_fork')
+first_email_sent = conf.getboolean('settings', 'first_email_sent')
+monitor_config = conf.getboolean('settings', 'monitor_config')
+unsent_save_location = conf.get('settings', 'unsent_save_location')
+log_file = conf.get('settings', 'log_file')
+log_level = conf.get('settings', 'log_level')
+log_format = conf.get('settings', 'log_format')
+date_format = conf.get('settings', 'date_format')
+smtp_server = conf.get('settings', 'smtp_server')
+smtp_port = conf.getint('settings', 'smtp_port')
+smtp_use_tls = conf.getboolean('settings', 'smtp_use_tls')
+imap_server = conf.get('settings', 'imap_server')
+imap_port = conf.getint('settings', 'imap_port')
+imap_use_ssl = conf.getboolean('settings', 'imap_use_ssl')
 
 if should_fork:
     try:
@@ -99,8 +109,9 @@ try:
 
     if not first_email_sent:
         server.send_intro_email()
-        conf['settings']['first_email_sent'] = str(True)
-        conf.save()
+        conf.set('settings', 'first_email_sent', 'yes')
+        with open(user_file, 'w') as f:
+            conf.write(f)
 
     # monitor MUST be done after sending the first email, otherwise the program may trigger reloading
     if monitor_config:
@@ -121,7 +132,6 @@ except ValueError as e:
     if monitor:
         monitor.stop()
     shutdown(1)
-# when the code is very nice and it rarely crashes, I intend on using the below code to safely trap all errors.
 except Exception as e:
     trace = traceback.format_exc()
     print(trace, file=sys.stderr)
