@@ -65,6 +65,7 @@ class Email():
         self.files.append((filename, filepath))
 
     def __str__(self):
+        """Return a nice formatted version of the Email object."""
         return 'Email <receiver={0}, sender={1}, subject={2}, body={3}>'.format(self.receiver, self.sender, self.subject, self.body)
 
     def search(self, pattern):
@@ -287,7 +288,6 @@ class EmailServer():
 
                     e = Email(sender=sender, receiver=receiver, subject=subject)
 
-                    #TODO: Add in the magic to add files
                     for part in body.walk():
                         if part.get_content_maintype() == 'multipart':
                             continue

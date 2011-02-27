@@ -29,18 +29,20 @@ global_file = "/usr/share/makeme/makemerc"
 user_file = os.path.join(os.environ['HOME'], ".makemerc")
 conf = config.get_config(user_file, global_file)
 
-contact_address = None
+if not conf:
+    print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
+    sys.exit(1)
+
 monitor = None
 
+# we set the default options for unrequired config file stuff here
+contact_address = None
 monitor_config = False
 should_fork = True
 first_email_sent = False
 unsent_save_location = 'unsent_emails.log'
 
-if not conf:
-    print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
-    sys.exit(1)
-
+# now let's get the config stuff that the user NEEDS to set.
 try:
     refresh_time = conf['settings']['refresh_time']
     username = conf['settings']['username']
@@ -53,6 +55,7 @@ except KeyError as e:
     print("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
     sys.exit(4)
 
+# all the optional arguments that don't really matter.
 if 'should_fork' in conf['settings']:
     should_fork = eval(conf['settings']['should_fork'])
 
@@ -80,7 +83,8 @@ if should_fork:
         sys.exit(12)
 
 log_level = eval("logging.{0}".format(log_level.upper()))
-# I explicitly don't start logging before forking to prevent deadlocks.
+
+# I explicitly don't start logging before forking to prevent deadlocks and prevent all sorts of nasty filesystem madness.
 logging.basicConfig(filename=log_file, level=log_level, format=log_format, datefmt=date_format)
 
 try:

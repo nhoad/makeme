@@ -35,10 +35,54 @@ def save_emails_to_file(emails, filename, reason):
             f.write('{0}\n'.format(e))
 
 
+class PClose(ProcessEvent):
+    def __init__(self, server, filename):
+        """Initialise the PClose object.
+
+        Keyword arguments:
+        server -- the EmailServer object to report config file changes back to.
+        filename -- the file that PClose should monitor.
+
+        """
+        self.server = server
+        self.filename = filename
+
+    def process_IN_CLOSE(self, event):
+        """Process IN_CLOSE events for the directory being monitored.
+
+        Keyword arguments:
+        event -- the event that has occurred. Mystical stuff!"""
+        if event.name != os.path.split(self.filename)[1]:
+            return
+
+        conf = config.Config()
+        conf.read(self.filename)
+
+        try:
+            refresh_time = conf['settings']['refresh_time']
+            username = conf['settings']['username']
+            password = conf['settings']['password']
+            patterns = conf['scripts']
+            contact_address = conf['settings']['contact_address']
+
+            lock = self.server.lock
+
+            lock.acquire()
+            self.server.reload_values(username, password, contact_address, patterns, refresh_time)
+            lock.release()
+
+        except KeyError as e:
+            logging.info("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
+            self.stop()
+            raise ShutdownException(15)
+
+
 def monitor(filename, server):
     """Monitor the config file for changes and update the server's values when they do.
 
-    Using pyinotify, it checks the config file for changes and tells the server to make changes when they occur. Starts and returns the ThreadedNotifier that is created.
+    Using pyinotify, it checks the config file for changes and tells the
+    server to make changes when they occur. Starts and returns the
+    ThreadedNotifier that is created.
 
     Keyword arguments:
     filename -- the name of the file you want to monitor. Note that it won't actually monitor this file, but the directory it resides in.
@@ -47,39 +91,11 @@ def monitor(filename, server):
     """
     logging.info('Monitoring {0} for changes'.format(filename))
 
-    class PClose(ProcessEvent):
-        def __init__(self, server, filename):
-            self.server = server
-            self.filename = filename
-
-        def process_IN_CLOSE(self, event):
-            if event.name != os.path.split(self.filename)[1]:
-                return
-
-            conf = config.Config()
-            conf.read(self.filename)
-
-            try:
-                refresh_time = conf['settings']['refresh_time']
-                username = conf['settings']['username']
-                password = conf['settings']['password']
-                patterns = conf['scripts']
-                contact_address = conf['settings']['contact_address']
-
-                lock = self.server.lock
-
-                lock.acquire()
-                self.server.reload_values(username, password, contact_address, patterns, refresh_time)
-                lock.release()
-
-            except KeyError as e:
-                logging.info("{0} could not be found in the config file. Consult the documentation for help.".format(e), file=sys.stderr)
-                self.stop()
-                raise ShutdownException(15)
 
     wm = WatchManager()
     notifier = ThreadedNotifier(wm, PClose(server, filename))
     notifier.name = 'MonitorThread'
+    # we actually watch the folder to the file, otherwise the handle is lost every time the file is modified.
     wm.add_watch(os.path.split(filename)[0], IN_CLOSE_WRITE, rec=True)
 
     notifier.start()

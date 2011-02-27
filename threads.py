@@ -21,6 +21,15 @@ import config
 class MessageProcessThread(Thread):
     """Thread for processing a message and replying accordingly."""
     def __init__(self, message, patterns, sender, lock):
+        """Initialise the MessageProcessThread object.
+
+        Keyword arguments:
+        message -- the Email object to work with.
+        patterns -- the list of regex patterns and corresponding scripts to be run against.
+        sender -- the EmailServer object used to send reply emails and all that jazz.
+        lock -- the Lock object to use when making calls to the EmailServer resources.
+
+        """
         Thread.__init__(self)
 
         self.message = message
@@ -110,6 +119,13 @@ class ProcessThreadsStarter(Thread):
 
     """
     def __init__(self, server, patterns):
+        """Initialise the ProcessThreadsStarter object
+
+        Keyword arguments:
+        server -- the EmailServer object to interact with for retrieving emails and such
+        patterns -- the regex patterns and corresponding scripts to test against
+
+        """
         Thread.__init__(self)
         self.server = server
         self.patterns = patterns

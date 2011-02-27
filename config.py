@@ -21,6 +21,7 @@ class Config(dict):
     file_found = False
 
     def __init__(self):
+        """Init method - does nothing. Literally, nothing."""
         pass
 
     def read(self, file_name):
@@ -60,6 +61,7 @@ class Config(dict):
         return True
 
     def __bool__(self):
+        """Returns true if a config file was found using the read method, false otherwise"""
         return self.file_found
 
     def save(self):
