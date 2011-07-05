@@ -27,6 +27,14 @@ class MakeMe(object):
             with open(self.local_config, 'w') as f:
                 self.config.write(f)
 
+    def _act(self, message):
+        """Interpret and handle message.
+
+        Keyword arguments:
+        message -- Email object to parse and handle.
+
+        """
+        logging.info('_act() not yet implemented')
 
     def _load_config(self):
         """Load global (/usr/share/makeme/makeme.conf) and user-level ($HOME/.makeme/makeme.conf) config files."""
@@ -56,8 +64,8 @@ class MakeMe(object):
             sys.exit(1)
 
     def _send_welcome_message(self):
-        logging.info('Info message not written yet')
-
+        """Send the welcome message to username from config."""
+        logging.info('_send_welcome_message() not written yet')
 
     def _start_logging(self):
         """Start logging to $HOME/.makeme/makeme.log."""
@@ -69,7 +77,8 @@ class MakeMe(object):
         logging.basicConfig(filename=log_file, level=log_level, format=log_format, datefmt=date_format)
 
     def check_messages(self):
-        logging.info('Checking for messages')
+        """Check for messages and call _act() on each one."""
+        logging.info('check_message() not yet implemented')
 
     def running(self):
         """Return True if the server is running, false otherwise."""
@@ -78,7 +87,6 @@ class MakeMe(object):
     def shutdown(self):
         """Shutdown the server and all relevant connections."""
         logging.info('Shutting down Makeme')
-        print("I don't do anything.", file=sys.stderr)
 
     def stop(self):
         """Stop the server."""
@@ -108,7 +116,7 @@ try:
         check_messages = server.check_messages
 
         while running():
-            #check_messages()
+            check_messages()
             wait()
 
         server.shutdown()
