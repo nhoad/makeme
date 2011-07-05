@@ -28,6 +28,14 @@ class MailHandler(object):
         self._login_imap()
         self._login_smtp()
 
+    def __del__(self):
+        """Clean up resources. Logs out IMAP and SMTP clients."""
+        self.imap.logout()
+        self.imap.close()
+
+        self.smtp.logout()
+        self.smtp.close()
+
     def _login_imap(self):
         """Log in to the IMAP server. Set self.imap to the connection object."""
         pass
@@ -71,6 +79,22 @@ class MakeMe(object):
 
         """
         logging.info('_act() not yet implemented')
+
+    def _get_mailhandler(self):
+        """Return a MailHandler object built from the config."""
+        get = self.config.get
+        getint = self.config.getint
+        getboolean = self.config.getboolean
+        username = get('settings', 'username')
+        password = get('settings', 'password')
+        smtp_server = get('settings', 'smtp_server')
+        smtp_port = getint('settings', 'smtp_port')
+        imap_server = get('settings', 'imap_server')
+        imap_port = getint('settings', 'imap_port')
+        use_tls = getboolean('settings', 'smtp_tls')
+        use_ssl = getboolean('settings', 'imap_ssl')
+
+        return MailHandler(username, password, smtp_server, smtp_port, imap_server, imap_port, use_ssl, use_tls)
 
     def _load_config(self):
         """Load global (/usr/share/makeme/makeme.conf) and user-level ($HOME/.makeme/makeme.conf) config files."""
@@ -116,22 +140,10 @@ class MakeMe(object):
         """Check for messages and call _act() on each one."""
         logging.info('Checking messages...')
 
-        get = self.config.get
-        getint = self.config.getint
-        getboolean = self.config.getboolean
-        username = get('settings', 'username')
-        password = get('settings', 'password')
-        smtp_server = get('settings', 'smtp_server')
-        smtp_port = getint('settings', 'smtp_port')
-        imap_server = get('settings', 'imap_server')
-        imap_port = getint('settings', 'imap_port')
-        use_tls = getboolean('settings', 'smtp_tls')
-        use_ssl = getboolean('settings', 'imap_ssl')
+        messages = self._get_mailhandler().get_messages()
 
-        messages = MailHandler(username, password, smtp_server, smtp_port, imap_server, imap_port, use_ssl, use_tls).get_messages()
-
-        if not messages:
-            logging.info('Received no messages')
+        if messages:
+            logging.info('Received {} messages'.format(len(messages)))
 
         for m in messages:
             self._act(m)
@@ -147,7 +159,7 @@ class MakeMe(object):
     def stop(self):
         """Stop the server."""
         logging.info('Stopping Makeme')
-        self._running = Falsezzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+        self._running = False
 
     def wait(self):
         """Sleep until the message queue should be checked."""
@@ -164,6 +176,8 @@ class MakeMeCLI(MakeMe):
     def _parse_argv(self):
         """Parse sys.argv for options, overloading those set in the config."""
         print('argv parsing not yet implemented.', file=sys.stderr)
+
+
 try:
     if __name__ == '__main__':
         server = MakeMeCLI()
@@ -176,6 +190,7 @@ try:
             wait()
 
         server.shutdown()
+
 except KeyboardInterrupt:
     server.shutdown()
 except (configparser.NoSectionError, configparser.NoOptionError) as e:
