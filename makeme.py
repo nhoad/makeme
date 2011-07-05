@@ -3,6 +3,7 @@ import os
 import logging
 import configparser
 import sys
+import time
 
 class MakeMe(object):
     def __init__(self):
@@ -17,13 +18,22 @@ class MakeMe(object):
                 sys.exit(0)
 
         self._start_logging()
+        logging.info('Starting Makeme server')
+
+        if not self.config.getboolean('settings', 'sent_welcome_message'):
+            self._send_welcome_message()
+            self.config.set('settings', True)
+
+            with open(self.local_config, 'w') as f:
+                self.config.write(f)
+
 
     def _load_config(self):
         """Load global (/usr/share/makeme/makeme.conf) and user-level ($HOME/.makeme/makeme.conf) config files."""
         config = dict()
 
         global_config = '/usr/share/makeme/makeme.conf'
-        local_config = os.path.join(os.environ['HOME'], '.makeme/makeme.conf')
+        local_config =self.local_config = os.path.join(os.environ['HOME'], '.makeme/makeme.conf')
 
         config['log_file'] = os.path.join(os.environ['HOME'], '.makeme/makeme.log')
         config['log_format'] = '[%(asctime)s] %(levelname)s: %(message)s'
@@ -37,12 +47,17 @@ class MakeMe(object):
         config['imap_ssl'] = 'yes'
         config['sent_welcome_message'] = 'no'
         config['fork'] = False
+        config['refresh_time'] = 5
 
         self.config = configparser.RawConfigParser(config)
-        
+
         if not self.config.read(global_config) and not self.config.read(local_config):
             print('No makeme.conf file could be found. Check the documentation for details.', file=sys.stderr)
             sys.exit(1)
+
+    def _send_welcome_message(self):
+        logging.info('Info message not written yet')
+
 
     def _start_logging(self):
         """Start logging to $HOME/.makeme/makeme.log."""
@@ -52,25 +67,27 @@ class MakeMe(object):
         log_level = eval('logging.{}'.format(c.get('settings', 'log_level').upper()))
         log_file = c.get('settings', 'log_file')
         logging.basicConfig(filename=log_file, level=log_level, format=log_format, datefmt=date_format)
-        logging.info('')
 
     def check_messages(self):
-        raise NotImplementedError('check_messages not yet implemented')
+        logging.info('Checking for messages')
 
     def running(self):
         """Return True if the server is running, false otherwise."""
         return self._running
 
     def shutdown(self):
-        raise NotImplementedError('server does not shutdown properly yet')
+        """Shutdown the server and all relevant connections."""
+        logging.info('Shutting down Makeme')
+        print("I don't do anything.", file=sys.stderr)
 
     def stop(self):
         """Stop the server."""
-        self._running = False
+        logging.info('Stopping Makeme')
+        self._running = Falsezzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
 
     def wait(self):
         """Sleep until the message queue should be checked."""
-        raise NotImplementedError('wait not yet implemented')
+        time.sleep(self.config.getint('settings', 'refresh_time'))
 
 
 class MakeMeCLI(MakeMe):
@@ -82,16 +99,18 @@ class MakeMeCLI(MakeMe):
 
     def _parse_argv(self):
         """Parse sys.argv for options, overloading those set in the config."""
-        print('argv parsing not yet implemented', file=sys.stderr)
+        print('argv parsing not yet implemented.', file=sys.stderr)
+try:
+    if __name__ == '__main__':
+        server = MakeMeCLI()
+        running = server.running
+        wait = server.wait
+        check_messages = server.check_messages
 
-if __name__ == '__main__':
-    server = MakeMeCLI()
-    running = server.running
-    wait = server.wait
-    check_messages = server.check_messages
+        while running():
+            #check_messages()
+            wait()
 
-    while running():
-        check_messages()
-        wait()
-
+        server.shutdown()
+except KeyboardInterrupt:
     server.shutdown()
