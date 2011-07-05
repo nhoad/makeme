@@ -52,6 +52,7 @@ conf = configparser.RawConfigParser(default_options)
 conf.read(global_file)
 if not conf.read(user_file):
     print("No .makemerc file could be found. Check the documentation for details.", file=sys.stderr)
+    print(conf.get('settings', 'imap_server'))
     sys.exit(1)
 
 # now let's get the config stuff that the user NEEDS to set.
