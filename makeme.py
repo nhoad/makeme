@@ -5,6 +5,8 @@ import configparser
 import sys
 import time
 import imaplib
+import smtplib
+import socket
 
 class Email(object):
     def __init__(self, sender=None, receiver=None, subject=None, body=None):
@@ -79,9 +81,12 @@ class MailHandler(object):
         try:
             self._login_imap()
             self._login_smtp()
-        except imaplib.IMAP4.error as e:
+        except (imaplib.IMAP4.error, socket.gaierror) as e:
             self.error = True
             logging.critical('IMAP error: ' + str(e))
+        except smtplib.SMTPAuthenticationError as e:
+            self.error = True
+            logging.critical('SMTP error: ' + str(e))
 
     def __del__(self):
         """Clean up resources. Logs out IMAP and SMTP clients."""
@@ -105,9 +110,24 @@ class MailHandler(object):
         self.imap.login(self.username, self.password)
         self.imap.select()
 
+        logging.debug('IMAP logged in')
+
     def _login_smtp(self):
         """Log in to the SMTP server. Set self.smtp to the connection object."""
-        pass
+        logging.debug('Logging in SMTP')
+
+        server, port, secure = self.smtp_details
+
+        self.smtp = smtplib.SMTP(server, port)
+        self.smtp.ehlo()
+
+        if secure:
+            self.smtp.starttls()
+
+        self.smtp.ehlo()
+        self.smtp.login(username, password)
+
+        logging.debug('SMTP logged in')
 
     def get_messages(self):
         """Return a list of Email objects"""
