@@ -4,6 +4,55 @@ import logging
 import configparser
 import sys
 import time
+import imaplib
+
+class Email(object):
+    def __init__(self, sender=None, receiver=None, subject=None, body=None):
+        """Initialise an Email object.
+
+        Keyword arguments:
+        sender -- address that sent the email
+        receiver -- recipient of the email
+        subject -- email's subject
+        body -- body of the email
+
+        """
+
+        self.sender = sender if sender else receiver
+        self.receiver = receiver
+        self.subject = subject
+        self.body = body
+        self.files = []
+
+    def attach_file(self, filename, filepath=None):
+        """Attach a file to an Email.
+
+        if filepath is None, then filename will be used as the name and path.
+
+        Keyword arguments:
+
+        filename -- name of the file as it will appear in the Email.
+        filepath -- path to the file data.
+
+        """
+        if not filepath:
+            filepath = filename
+
+        self.files.append((filename, filepath))
+
+    def __repr__(self):
+        """Nice formatted output."""
+        return 'Email(receiver={0}, sender={1}, subject={2}, body={3})'.format(self.receiver, self.sender, self.subject, self.body)
+
+    def search(self, pattern):
+        """Search the message and subject for pattern.
+
+        Keyword arguments:
+        pattern -- string/regex to search for.
+
+        """
+        p = r'%s'.lower() % pattern
+        return re.search(p, self.subject.lower()) or re.search(p, self.body.lower())
 
 class MailHandler(object):
     def __init__(self, username, password, smtp_server, smtp_port, imap_server, imap_port, use_ssl, use_tls):
@@ -22,23 +71,39 @@ class MailHandler(object):
         """
         self.username = username
         self.password = password
-        self.imap = (imap_server, imap_port, use_ssl)
-        self.smtp = (smtp_server, smtp_port, use_tls)
+        self.imap_details = (imap_server, imap_port, use_ssl)
+        self.smtp_details = (smtp_server, smtp_port, use_tls)
+        self.error = False
+        self.imap = self.smtp = None
 
-        self._login_imap()
-        self._login_smtp()
+        try:
+            self._login_imap()
+            self._login_smtp()
+        except imaplib.IMAP4.error as e:
+            self.error = True
+            logging.critical('IMAP error: ' + str(e))
 
     def __del__(self):
         """Clean up resources. Logs out IMAP and SMTP clients."""
-        self.imap.logout()
-        self.imap.close()
+        if self.imap:
+            logging.debug('Logging out IMAP')
+            self.imap.logout()
+            logging.debug('IMAP logged out')
 
-        self.smtp.logout()
-        self.smtp.close()
+        if self.smtp:
+            logging.debug('Logging out SMTP')
+            self.smtp.quit()
+            logging.debug('SMTP logged out')
 
     def _login_imap(self):
         """Log in to the IMAP server. Set self.imap to the connection object."""
-        pass
+        logging.debug('Logging in IMAP')
+
+        server, port, secure = self.imap_details
+
+        self.imap = imaplib.IMAP4_SSL(server, port) if secure else imaplib.IMAP4(server, port)
+        self.imap.login(self.username, self.password)
+        self.imap.select()
 
     def _login_smtp(self):
         """Log in to the SMTP server. Set self.smtp to the connection object."""
@@ -46,6 +111,9 @@ class MailHandler(object):
 
     def get_messages(self):
         """Return a list of Email objects"""
+        if self.error:
+            return None
+
         return []
 
 
@@ -141,6 +209,10 @@ class MakeMe(object):
         logging.info('Checking messages...')
 
         messages = self._get_mailhandler().get_messages()
+
+        if messages is None:
+            self.stop()
+            return
 
         if messages:
             logging.info('Received {} messages'.format(len(messages)))
