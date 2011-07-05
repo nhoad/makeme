@@ -134,7 +134,41 @@ class MailHandler(object):
         if self.error:
             return None
 
-        return []
+        emails = []
+        return emails
+
+    def send_email(self, email):
+        """Send an email.
+
+        Keyword arguments:
+        email -- Email object to send
+
+        """
+        logging.info('Sending message to {}'.format(email.receiver))
+
+        if isinstance(email.receiver, list):
+            to = [email.receiver]
+
+        msg = MIMEMultipart()
+        msg['From'] = email.sender
+        msg['To'] = ', '.join(to)
+        msg['Date'] = formatdate(localtime=True)
+        msg['Subject'] = email.subject
+
+        msg.attach(MIMEText(email.body))
+
+        if len(email.files) > 0:
+            for name, path in email.files:
+                data = open(name, 'rb').read()
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(data)
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', 'attachment; filename="{}"'.format(os.path.basename(name)))
+
+                msg.attach(part)
+
+        self.smtp.sendmail(self.username, to, msg.as_string())
+        logging.debug('Message sent')
 
 
 class MakeMe(object):
