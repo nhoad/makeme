@@ -47,7 +47,7 @@ class MakeMe(object):
         self._running = True
         self._load_config()
 
-        if self.config.get('settings', 'fork'):
+        if self.config.getboolean('settings', 'fork'):
             pid = os.fork()
 
             if pid:
