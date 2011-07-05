@@ -125,7 +125,7 @@ class MailHandler(object):
             self.smtp.starttls()
 
         self.smtp.ehlo()
-        self.smtp.login(username, password)
+        self.smtp.login(self.username, self.password)
 
         logging.debug('SMTP logged in')
 
