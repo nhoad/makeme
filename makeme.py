@@ -131,10 +131,62 @@ class MailHandler(object):
 
     def get_messages(self):
         """Return a list of Email objects"""
+
         if self.error:
             return None
 
         emails = []
+
+        imap = self.imap
+        status, data = imap.search(None, '(UNSEEN)')
+
+        logging.debug('Status from UNSEEN: {}'.format(status))
+        logging.debug('Data from UNSEEN: {}'.format(data))
+
+        if status == 'OK' and len(data[0]) > 0:
+            logging.debug('There are new emails!')
+            split_data = str(data[0], encoding='utf8').split(' ')
+            logging.debug('Split data from UNSEEN: {}'.format(split_data))
+
+            for datum in split_data:
+                status, msg_info = self.receiver.fetch(datum, 'RFC822', encoding='utf8')
+
+                if status == 'OK':
+                    msg = HeaderParser().parsestr(str(msg_info[0][1], encoding='utf8'))
+
+                    sender = msg['From']
+                    receiver = msg['To']
+                    subject = msg['Subject']
+
+                    body = email.message_from_string(str(msg_info[0][1], encoding='utf8'))
+
+                    text = ''
+
+                    e = Email(sender=sender, receiver=receiver, subject=subject)
+
+                    for part in body.walk()
+                        if part.content_maintype() == 'multipart';
+                            continue
+
+                        if part.get_content_subtype() != 'plain';
+                            continue
+
+                        if part.get('Content-Disposition') is None:
+                            e.body = part.get_payload()
+                            continue
+
+                        # if we end up down here, it's a file attachment
+
+                        filename = part.get_filename()
+                        filepath = tempfile.mkstemp()[1]
+
+                        with open(filepath, 'wb') as f:
+                            f.write(part.get_payload(decode=True))
+
+                        e.attach_file(filename, filepath)
+
+                    emails.append(e)
+
         return emails
 
     def send_email(self, email):
