@@ -23,205 +23,198 @@ from email.mime.multipart import MIMEMultipart
 from email.parser import HeaderParser
 from email.utils import formatdate
 
-from exceptions import ShutdownException
-import threads
-import functions
 
-from threading import Lock
-
-
-class Email():
-    """email wrapper class to make handling emails nicer"""
+class Email(object):
     def __init__(self, sender=None, receiver=None, subject=None, body=None):
-        """ Initialise Email class.
+        """Initialise an Email object.
 
         Keyword arguments:
         sender -- address that sent the email
-        receiver -- address that received the email
-        subject -- the subject of the email
-        body -- the body of the email
+        receiver -- recipient of the email
+        subject -- email's subject
+        body -- body of the email
 
         """
-        if not sender:
-            self.sender = receiver
-        else:
-            self.sender = sender
 
+        self.sender = sender if sender else receiver
         self.receiver = receiver
         self.subject = subject
         self.body = body
         self.files = []
 
     def attach_file(self, filename, filepath=None):
-        """Attach a file to the email object
+        """Attach a file to an Email.
 
-        if filepath is None, then filename will be used as the name as well as the path to the data.
+        if filepath is None, then filename will be used as the name and path.
 
         Keyword arguments:
-        filename -- name of the file.
-        filepath -- path to the file data, typically in a temporary directory.
+
+        filename -- name of the file as it will appear in the Email.
+        filepath -- path to the file data.
 
         """
+        if not filepath:
+            filepath = filename
+
         self.files.append((filename, filepath))
 
-    def __str__(self):
-        """Return a nice formatted version of the Email object."""
-        return 'Email <receiver={0}, sender={1}, subject={2}, body={3}>'.format(self.receiver, self.sender, self.subject, self.body)
+    def __repr__(self):
+        """Nice formatted output."""
+        return 'Email(receiver={0}, sender={1}, subject={2}, body={3})'.format(self.receiver, self.sender, self.subject, self.body)
 
     def search(self, pattern):
-        """Search the message and subject for pattern, return true or false
+        """Search the message and subject for pattern.
 
         Keyword arguments:
-        pattern -- the string to search for, can also be a regular expression
+        pattern -- string/regex to search for.
 
         """
-        return re.search(r'%s'.lower() % pattern, self.subject.lower()) or re.search(r'%s'.lower() % pattern, self.body.lower())
+        p = r'%s'.lower() % pattern
+        return re.search(p, self.subject.lower()) or re.search(p, self.body.lower())
 
-
-class EmailServer():
-    """EmailServer wraps up all email processing using Email where possible."""
-
-    def __init__(self, username, password):
-        """Initialise the email server.
+class MailHandler(object):
+    def __init__(self, username, password, smtp_server, smtp_port, imap_server, imap_port, use_ssl, use_tls):
+        """Set the username, password, SMTP and IMAP info, and log in.
 
         Keyword arguments:
-        username -- username to log into the SMTP and IMAP servers.
-        password -- password to log into the SMTP and IMAP servers.
+        username -- username to log into IMAP and SMTP
+        password -- password to log into IMAP and SMTP
+        smtp_server -- IP or hostname of SMTP server
+        smtp_port -- port of SMTP server
+        imap_server -- IP or hostname of IMAP server
+        imap_port -- port of IMAP server
+        use_ssl -- boolean for whether to use ssl or not to connect to IMAP
+        use_tls -- boolean for whether to use tls or not to connect to SMTP
 
         """
-        self.message = """From: %s\r\nTo: %s\r\nSubject: %s\r\n%s\r\n"""
-        self.username, self.password = username, password
-        self.sender = None
-        self.receiver = None
-        self.unsent_emails = []
-        self.contact_address = None
-        self.smtp_server = 'smtp.gmail.com'
-        self.smtp_port = 587
-        self.imap_server = 'imap.gmail.com'
-        self.imap_port = 993
-        self.imap_use_ssl = True
-        self.smtp_use_tls = True
-        self.lock = Lock()
+        self.username = username
+        self.password = password
+        self.imap_details = (imap_server, imap_port, use_ssl)
+        self.smtp_details = (smtp_server, smtp_port, use_tls)
+        self.error = False
+        self.imap = self.smtp = None
+
+        try:
+            self._login_imap()
+            self._login_smtp()
+        except (imaplib.IMAP4.error, socket.gaierror) as e:
+            self.error = True
+            logging.critical('IMAP error: ' + str(e))
+        except smtplib.SMTPAuthenticationError as e:
+            self.error = True
+            logging.critical('SMTP error: ' + str(e))
 
     def __del__(self):
-        """Clean up the EmailServer. Logs things out and whatnot."""
-        if self.sender:
-            logging.debug("Logging out SMTP")
-            self.sender.quit()
-            logging.info("SMTP logged out")
-        if self.receiver:
-            self.logout_imap()
+        """Clean up resources. Logs out IMAP and SMTP clients."""
+        if self.imap:
+            logging.debug('Logging out IMAP')
+            self.imap.logout()
+            logging.debug('IMAP logged out')
 
-    def reload_values(self, username, password, contact_address, patterns, refresh_time):
-        """Change particular stored values and update them accordingly
+        if self.smtp:
+            logging.debug('Logging out SMTP')
+            self.smtp.quit()
+            logging.debug('SMTP logged out')
 
-        Keyword arguments:
-        username -- the new username to change to (for imap and smtp)
-        password -- the new password to change to (for imap and smtp)
-        contact_address -- the new address to be contacted for on crashes or info messages
-        patterns -- the new patterns to check new messages against
-        refresh_time -- the new refresh time, how often to check for messages
+    def _login_imap(self):
+        """Log in to the IMAP server. Set self.imap to the connection object."""
+        logging.debug('Logging in IMAP')
 
-        """
-        logging.info("Config file was changed, reloading...")
-        self.lock.acquire()
-        if self.password != password or self.username != username:
-            self.password = password
-            self.username = username
+        server, port, secure = self.imap_details
 
-            self.sender.quit()
-            self.login_smtp()
+        self.imap = imaplib.IMAP4_SSL(server, port) if secure else imaplib.IMAP4(server, port)
+        self.imap.login(self.username, self.password)
+        self.imap.select()
 
-        self.contact_address = contact_address
-        self.patterns = patterns
-        self.refresh_time = refresh_time
+        logging.debug('IMAP logged in')
 
-        self.lock.release()
+    def _login_smtp(self):
+        """Log in to the SMTP server. Set self.smtp to the connection object."""
+        logging.debug('Logging in SMTP')
 
-    def set_imap(self, imap_server, imap_port, use_ssl):
-        """set the IMAP server settings.
+        server, port, secure = self.smtp_details
 
-        Keyword arguments:
-        imap_server -- IP address or domain to connect to.
-        imap_port -- port to connect through.
-        use_ssl -- should the connection be secure?
+        self.smtp = smtplib.SMTP(server, port)
+        self.smtp.ehlo()
 
-        """
-        self.imap_server = imap_server
-        self.imap_port = imap_port
-        self.imap_use_ssl = use_ssl
-        self.smtp_use_tls = True
+        if secure:
+            self.smtp.starttls()
 
-    def set_smtp(self, smtp_server, smtp_port, use_tls):
-        """set the IMAP server settings.
+        self.smtp.ehlo()
+        self.smtp.login(self.username, self.password)
 
-        Keyword arguments:
-        smtp_server -- IP address or domain to connect to.
-        smtp_port -- port to connect through.
-        use_tls -- should the connection be secure?
+        logging.debug('SMTP logged in')
 
-        """
-        self.smtp_server = smtp_server
-        self.smtp_port = smtp_port
-        self.smtp_use_tls = use_tls
+    def get_messages(self):
+        """Return a list of Email objects."""
 
-    def logout_imap(self):
-        """Logout the IMAP account. Keeps things tidy."""
-        logging.debug("Logging out IMAP")
-        # really bad, but no other way to handle bad file descritor
-        try:
-            self.receiver.logout()
-        except Exception:
-            pass
-        logging.info("IMAP logged out")
-        self.receiver = None
+        if self.error:
+            return None
 
-    def login_smtp(self):
-        """login the SMTP client"""
-        logging.debug("Logging in SMTP")
-        try:
-            self.sender = smtplib.SMTP(self.smtp_server, self.smtp_port)
-            self.sender.ehlo()
-            if self.smtp_use_tls:
-                self.sender.starttls()
-            self.sender.ehlo()
-            self.sender.login(self.username, self.password)
-            logging.info("SMTP logged in")
-        except SMTPAuthenticationError as e:
-            trace = traceback.format_exc()
-            message = "Error logging into SMTP: {0}".format(trace)
-            logging.critical(message)
-            print(message, file=sys.stderr)
-            raise ShutdownException(2)
+        emails = []
 
-    def login_imap(self):
-        """log in the IMAP client"""
-        logging.debug("Logging in IMAP")
-        try:
-            if self.receiver is not None:
-                self.receiver.logout()
+        imap = self.imap
+        status, data = imap.search(None, '(UNSEEN)')
 
-            if self.imap_use_ssl:
-                self.receiver = imaplib.IMAP4_SSL(self.imap_server, self.imap_port)
-            else:
-                self.receiver = imaplib.IMAP4(self.imap_server, self.imap_port)
+        logging.debug('Status from UNSEEN: {}'.format(status))
+        logging.debug('Data from UNSEEN: {}'.format(data))
 
-            self.receiver.login(self.username, self.password)
-            self.receiver.select()
-        except Exception as e:
-            logging.critical("Error logging into IMAP: {0}".format(e))
-            raise ShutdownException(3)
+        if status == 'OK' and len(data[0]) > 0:
+            logging.debug('There are new emails!')
+            split_data = str(data[0], encoding='utf8').split(' ')
+            logging.debug('Split data from UNSEEN: {}'.format(split_data))
+
+            for datum in split_data:
+                status, msg_info = self.receiver.fetch(datum, 'RFC822', encoding='utf8')
+
+                if status == 'OK':
+                    msg = HeaderParser().parsestr(str(msg_info[0][1], encoding='utf8'))
+
+                    sender = msg['From']
+                    receiver = msg['To']
+                    subject = msg['Subject']
+
+                    body = email.message_from_string(str(msg_info[0][1], encoding='utf8'))
+
+                    text = ''
+
+                    e = Email(sender=sender, receiver=receiver, subject=subject)
+
+                    for part in body.walk():
+                        if part.content_maintype() == 'multipart':
+                            continue
+
+                        if part.get_content_subtype() != 'plain':
+                            continue
+
+                        if part.get('Content-Disposition') is None:
+                            e.body = part.get_payload()
+                            continue
+
+                        # if we end up down here, it's a file attachment
+
+                        filename = part.get_filename()
+                        filepath = tempfile.mkstemp()[1]
+
+                        with open(filepath, 'wb') as f:
+                            f.write(part.get_payload(decode=True))
+
+                        e.attach_file(filename, filepath)
+
+                    emails.append(e)
+
+        return emails
 
     def send_email(self, email):
-        """Send an email via the SMTP account.
+        """Send an email.
 
         Keyword arguments:
-        email -- Email object to send.
+        email -- Email object to send
 
         """
-        logging.info("Sending message to {0}".format(email.receiver))
+        logging.info('Sending message to {}'.format(email.receiver))
 
-        if type(email.receiver) != type([]):
+        if isinstance(email.receiver, list):
             to = [email.receiver]
 
         msg = MIMEMultipart()
@@ -238,115 +231,10 @@ class EmailServer():
                 part = MIMEBase('application', 'octet-stream')
                 part.set_payload(data)
                 encoders.encode_base64(part)
-                part.add_header('Content-Disposition', 'attachment; filename="{0}"'.format(os.path.basename(name)))
+                part.add_header('Content-Disposition', 'attachment; filename="{}"'.format(os.path.basename(name)))
 
-            msg.attach(part)
+                msg.attach(part)
 
-        self.sender.sendmail(self.username, to, msg.as_string())
-        logging.debug("Message sent")
+        self.smtp.sendmail(self.username, to, msg.as_string())
+        logging.debug('Message sent')
 
-    def send_intro_email(self):
-        """Send the introductory email to the specified contact address"""
-
-        f = open(os.path.join(os.getcwd(), "/messages/intro", 'r'))
-        message = ''.join(f.readlines())
-        f.close()
-
-        if self.contact_address is None:
-            logging.info("Inntroductory email can't be sent. No contact address specified.")
-
-        self.send_email(Email(sender=self.username, receiver=self.contact_address, subject="Welcome to makeme!", body=message))
-
-    def receive_mail(self):
-        """Retrieve all unread messages and return them as a list of Emails"""
-        status, data = self.receiver.search(None, '(UNSEEN)')
-
-        emails = []
-
-        logging.debug("Status from (UNSEEN): {0}".format(status))
-        logging.debug("Data from (UNSEEN): {0}".format(data))
-
-        if status == 'OK' and len(data[0]) > 0:
-            logging.debug("There are new emails!")
-            split_data = str(data[0], encoding='utf8').split(' ')
-            logging.debug("Split_data from (UNSEEN): {0}".format(split_data))
-            for datum in split_data:
-                result, msg_info = self.receiver.fetch(datum, 'RFC822')
-
-                if result == 'OK':
-                    msg = HeaderParser().parsestr(str(msg_info[0][1], \
-                        encoding='utf8'))
-
-                    sender = msg['From']
-                    receiver = msg['To']
-                    subject = msg['Subject']
-
-                    body = email.message_from_string(str(msg_info[0][1], \
-                        encoding='utf8'))
-
-                    text = ''
-
-                    e = Email(sender=sender, receiver=receiver, subject=subject)
-
-                    for part in body.walk():
-                        if part.get_content_maintype() == 'multipart':
-                            continue
-
-                        if part.get_content_subtype() != 'plain':
-                            continue
-
-                        if part.get('Content-Disposition') is None:
-                            e.body = part.get_payload()
-                            continue
-
-                        # not sure why I did this, I seem to get the body up the top too.
-
-                        filename = part.get_filename()
-
-                        filepath = tempfile.mkstemp()[1]
-                        fp = open(filepath, 'wb')
-                        fp.write(part.get_payload(decode=True))
-                        fp.close()
-
-                        e.attach_file(filename, filepath)
-
-                    emails.append(e)
-        else:
-            logging.debug("There are NO new emails!")
-
-        return emails
-
-    def check_messages(self):
-        """Create a ProcessThreadStarter for processing which will log into the server and start processing."""
-        threads.ProcessThreadsStarter(self, self.patterns).start()
-
-    def add_email_to_queue(self, email):
-        """Add an email to the queue, to be sent when SMTP reconnects.
-
-        Keyword Arguments:
-        email -- the Email object to add to the queue.
-
-        """
-        self.unsent_emails.append(email)
-
-    def run(self, refresh_time):
-        """Run the server.
-
-        Keyword Arguments:
-        refresh_time -- the refresh time read from the config file. Should be a string.
-
-        """
-
-        functions.calculate_refresh(refresh_time)
-        self.refresh_time = refresh_time
-
-        while True:
-            self.lock.acquire()
-            refresh_time = self.refresh_time
-            self.lock.release()
-
-            new_refresh = functions.calculate_refresh(refresh_time, True)
-            logging.info("Checking instructions in {0} seconds, calculated from {1}".format(new_refresh, refresh_time))
-            time.sleep(new_refresh)
-            logging.info("Checking for new instructions")
-            self.check_messages()
