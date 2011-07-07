@@ -46,15 +46,15 @@ class MakeMe(object):
         """
         patterns = self.patterns
 
-        for p, command in patterns:
+        for p, script in patterns:
             if message.match(p):
-                logging.info('executing {}'.format(command))
+                logging.info('executing {}'.format(script))
 
                 directory = os.path.dirname(os.path.realpath(__file__))
 
                 print(directory)
 
-                command = [os.path.join(directory, 'scripts/{}'.format(command))]
+                command = [os.path.join(directory, 'scripts/{}'.format(script))]
 
                 command.append(message.receiver)
                 command.append(message.subject)
@@ -63,6 +63,16 @@ class MakeMe(object):
 
                 pipe = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 pipe.wait()
+
+                logging.info('Popen for {} is complete'.format(command))
+
+                reply_message = str(pipe.stderr.read(), encoding='utf8')
+                reply_script = str(pipe.stderr.read(), encoding='utf8')
+
+                if reply_script:
+                    print('process script')
+                else:
+                    print('process output')
 
                 break
 
