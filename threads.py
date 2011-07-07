@@ -23,4 +23,4 @@ class MessageProcessor(Thread):
         messages = e.get_messages()
 
         for m in messages:
-            self.action(m)
+            self.action(e, m)

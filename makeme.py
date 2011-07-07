@@ -50,7 +50,11 @@ class MakeMe(object):
             if message.match(p):
                 logging.info('executing {}'.format(command))
 
-                command = [os.path.join(os.path.dirname(__file__), '/scripts/{}'.format(command))]
+                directory = os.path.dirname(os.path.realpath(__file__))
+
+                print(directory)
+
+                command = [os.path.join(directory, 'scripts/{}'.format(command))]
 
                 command.append(message.receiver)
                 command.append(message.subject)
@@ -130,19 +134,6 @@ class MakeMe(object):
 
         MessageProcessor(self._get_mailhandler, self._act).start()
 
-        messages = self._get_mailhandler().get_messages()
-
-        if messages is None:
-            self.stop()
-            return
-
-        if messages:
-            logging.info('Received {} messages'.format(len(messages)))
-
-        act = self._act
-
-        for m in messages:
-            act(m)
 
     def running(self):
         """Return True if the server is running, false otherwise."""

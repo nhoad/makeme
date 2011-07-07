@@ -165,7 +165,7 @@ class MailHandler(object):
             logging.debug('Split data from UNSEEN: {}'.format(split_data))
 
             for datum in split_data:
-                status, msg_info = self.receiver.fetch(datum, 'RFC822', encoding='utf8')
+                status, msg_info = self.imap.fetch(datum, 'RFC822')
 
                 if status == 'OK':
                     msg = HeaderParser().parsestr(str(msg_info[0][1], encoding='utf8'))
@@ -181,7 +181,7 @@ class MailHandler(object):
                     e = Email(sender=sender, receiver=receiver, subject=subject)
 
                     for part in body.walk():
-                        if part.content_maintype() == 'multipart':
+                        if part.get_content_maintype() == 'multipart':
                             continue
 
                         if part.get_content_subtype() != 'plain':
