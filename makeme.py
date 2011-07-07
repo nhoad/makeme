@@ -7,6 +7,7 @@ import time
 import imaplib
 import smtplib
 import socket
+import subprocess
 
 from threads import MessageProcessor
 from emails import Email, MailHandler
@@ -17,6 +18,7 @@ class MakeMe(object):
         """Initialise the MakeMe object. Sets _running to True, loads the config and logging, forking if requested."""
         self._running = True
         self._load_config()
+        self._load_patterns()
 
         if self.config.getboolean('settings', 'fork'):
             pid = os.fork()
@@ -34,13 +36,32 @@ class MakeMe(object):
             with open(self.local_config, 'w') as f:
                 self.config.write(f)
 
-    def _act(self, message):
+    def _act(self, mail_handler, message):
         """Interpret and handle a message.
 
         Keyword arguments:
+        mail_handler -- MailHandler object. Intended only to send emails
         message -- Email object to parse and handle.
 
         """
+        patterns = self.patterns
+
+        for p, command in patterns:
+            if message.match(p):
+                logging.info('executing {}'.format(command))
+
+                command = [os.path.join(os.path.dirname(__file__), '/scripts/{}'.format(command))]
+
+                command.append(message.receiver)
+                command.append(message.subject)
+                command.append(message.body)
+                command.append(message.sender)
+
+                pipe = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                pipe.wait()
+
+                break
+
         logging.info('_act() not yet implemented')
 
     def _get_mailhandler(self):
@@ -85,6 +106,10 @@ class MakeMe(object):
         if not self.config.read(global_config) and not self.config.read(local_config):
             print('No makeme.conf file could be found. Check the documentation for details.', file=sys.stderr)
             sys.exit(1)
+
+    def _load_patterns(self):
+        """Load patterns from _config."""
+        self.patterns = self.config.items('scripts')
 
     def _send_welcome_message(self):
         """Send the welcome message to username from config."""

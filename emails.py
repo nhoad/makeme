@@ -62,7 +62,7 @@ class Email(object):
         """Nice formatted output."""
         return 'Email(receiver={0}, sender={1}, subject={2}, body={3})'.format(self.receiver, self.sender, self.subject, self.body)
 
-    def search(self, pattern):
+    def match(self, pattern):
         """Search the message and subject for pattern.
 
         Keyword arguments:
