@@ -14,6 +14,7 @@ import os
 import sys
 import tempfile
 import traceback
+import socket
 
 from smtplib import SMTPAuthenticationError
 from email import encoders
@@ -218,8 +219,7 @@ class MailHandler(object):
         """
         logging.info('Sending message to {}'.format(email.receiver))
 
-        if isinstance(email.receiver, list):
-            to = [email.receiver]
+        to = [email.receiver] if not isinstance(email.receiver, list) else email.receiver
 
         msg = MIMEMultipart()
         msg['From'] = email.sender

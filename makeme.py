@@ -52,22 +52,20 @@ class MakeMe(object):
 
                 directory = os.path.dirname(os.path.realpath(__file__))
 
-                print(directory)
+                command = os.path.join(directory, 'scripts/{}'.format(script))
 
-                command = [os.path.join(directory, 'scripts/{}'.format(script))]
+                args = [' '.join(message.receiver)]
+                args.append(message.subject)
+                args.append(message.body)
+                args.append(message.sender)
 
-                command.append(message.receiver)
-                command.append(message.subject)
-                command.append(message.body)
-                command.append(message.sender)
-
-                pipe = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                pipe = subprocess.Popen(args, executable=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 pipe.wait()
 
                 logging.info('Popen for {} is complete'.format(command))
 
                 reply_message = str(pipe.stderr.read(), encoding='utf8')
-                reply_script = str(pipe.stderr.read(), encoding='utf8')
+                reply_script = str(pipe.stdout.read(), encoding='utf8')
 
                 if reply_script:
                     print('process script')
@@ -75,7 +73,7 @@ class MakeMe(object):
                     subject = 'RE: {}'.format(message.subject)
                     sender = message.sender
                     body = reply_message
-                    mail_handler.send_email(Email(receiver=sender, subject=subject, body=body))
+                    mail_handler.send_email(Email(receiver=sender, subject=subject, body=body, sender=self.config.get('settings', 'username')))
 
                 break
 
