@@ -72,7 +72,10 @@ class MakeMe(object):
                 if reply_script:
                     print('process script')
                 else:
-                    print('process output')
+                    subject = 'RE: {}'.format(message.subject)
+                    sender = message.sender
+                    body = reply_message
+                    mail_handler.send_email(Email(receiver=sender, subject=subject, body=body))
 
                 break
 

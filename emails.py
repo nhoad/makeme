@@ -36,11 +36,15 @@ class Email(object):
 
         """
 
-        self.sender = sender if sender else receiver
-        self.receiver = receiver
+        self.sender = sender
         self.subject = subject
         self.body = body
         self.files = []
+
+        if isinstance(receiver, list):
+            self.receiver = receiver
+        else:
+            self.receiver = [receiver]
 
     def attach_file(self, filename, filepath=None):
         """Attach a file to an Email.
@@ -219,7 +223,7 @@ class MailHandler(object):
 
         msg = MIMEMultipart()
         msg['From'] = email.sender
-        msg['To'] = ', '.join(to)
+        msg['To'] = ', '.join(email.receiver)
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = email.subject
 
